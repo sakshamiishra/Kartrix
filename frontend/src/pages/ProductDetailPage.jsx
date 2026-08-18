@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
-import { Heart, ShoppingBag, ChevronRight, ShieldCheck, Truck, Headphones, ArrowLeft } from 'lucide-react';
+import { Heart, ShoppingBag, ChevronRight, ShieldCheck, Truck, Headphones, ArrowLeft, Plus, Minus } from 'lucide-react';
 import { productApi } from '../api/productApi';
 import { ProductGallery } from '../components/products/ProductGallery';
 import { VariantSelector } from '../components/products/VariantSelector';
 import { ProductDetailSkeleton } from '../components/common/LoadingSkeleton';
-import { useToast } from '../context/ToastContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 
 export const ProductDetailPage = () => {
   const { slug } = useParams();
-  const { showToast } = useToast();
+  const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,10 +35,6 @@ export const ProductDetailPage = () => {
     };
     fetchProduct();
   }, [slug]);
-
-  const handlePhase6Notice = (feature) => {
-    showToast(`${feature} features will unlock in Phase 6.`, 'info');
-  };
 
   if (loading) return <ProductDetailSkeleton />;
 
@@ -58,6 +57,15 @@ export const ProductDetailPage = () => {
   const currentPrice = selectedVariant?.discount_price || selectedVariant?.price || product.starting_price || '0.00';
   const categoryName = typeof product.category === 'object' ? product.category?.name : 'Category';
   const brandName = typeof product.brand === 'object' ? product.brand?.name : null;
+  const savedInWishlist = isInWishlist(product.id);
+
+  const handleAddToCart = () => {
+    addToCart(product, selectedVariant?.id || null, quantity);
+  };
+
+  const handleToggleWishlist = () => {
+    toggleWishlist(product);
+  };
 
   return (
     <div className="space-y-8 pb-16">
@@ -115,33 +123,59 @@ export const ProductDetailPage = () => {
             </p>
           </div>
 
-          {/* Variants Selector & Stock Indicator */}
+          {/* Variants Selector */}
           <VariantSelector
             variants={product.variants || []}
             onVariantChange={(v) => setSelectedVariant(v)}
           />
 
-          {/* Actions — Phase 6 Placeholders */}
+          {/* Quantity Selector */}
+          <div className="space-y-2 pt-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Quantity
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-[#0F1011] p-1 rounded-xl border border-gray-200 dark:border-[#2A2D32]">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-[#17191B] rounded-lg transition-colors"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="w-10 text-center font-bold text-sm text-gray-900 dark:text-white">
+                  {quantity}
+                </span>
+                <button
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-[#17191B] rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
           <div className="space-y-3 pt-4">
             <button
-              onClick={() => handlePhase6Notice('Cart')}
+              onClick={handleAddToCart}
               className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
             >
               <ShoppingBag className="w-5 h-5" />
-              <span>Add to Cart (Phase 6)</span>
+              <span>Add to Cart</span>
             </button>
 
             <button
-              onClick={() => handlePhase6Notice('Wishlist')}
-              className="w-full py-3 bg-gray-100 dark:bg-[#0F1011] hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-900 dark:text-white font-semibold text-xs rounded-xl border border-gray-200 dark:border-[#2A2D32] flex items-center justify-center gap-2 transition-colors"
+              onClick={handleToggleWishlist}
+              className={`w-full py-3 font-semibold text-xs rounded-xl border flex items-center justify-center gap-2 transition-colors ${
+                savedInWishlist
+                  ? 'bg-rose-500 text-white border-rose-500 hover:bg-rose-600'
+                  : 'bg-gray-100 dark:bg-[#0F1011] hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-[#2A2D32]'
+              }`}
             >
-              <Heart className="w-4 h-4 text-orange-600 dark:text-orange-500" />
-              <span>Add to Wishlist (Phase 6)</span>
+              <Heart className={`w-4 h-4 ${savedInWishlist ? 'fill-current text-white' : 'text-orange-600 dark:text-orange-500'}`} />
+              <span>{savedInWishlist ? 'Saved in Wishlist' : 'Add to Wishlist'}</span>
             </button>
-
-            <p className="text-[11px] text-center text-gray-400 dark:text-gray-500 italic">
-              Cart and Wishlist checkout features will unlock in Phase 6.
-            </p>
           </div>
 
           {/* Service Perks */}

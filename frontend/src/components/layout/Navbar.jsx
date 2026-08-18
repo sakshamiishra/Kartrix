@@ -3,12 +3,14 @@ import { Link, NavLink, useNavigate } from 'react-router';
 import { ShoppingBag, Heart, Search, User, Sun, Moon, Menu, X, LogOut } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
+import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 
 export const Navbar = () => {
   const { isDark, toggleTheme } = useTheme();
   const { user, isAuthenticated, logout } = useAuth();
-  const { showToast } = useToast();
+  const { totalItems } = useCart();
+  const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,10 +23,6 @@ export const Navbar = () => {
       navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
       setMobileMenuOpen(false);
     }
-  };
-
-  const handlePhase6Notice = (feature) => {
-    showToast(`${feature} features will unlock in Phase 6.`, 'info');
   };
 
   const navLinks = [
@@ -58,9 +56,7 @@ export const Navbar = () => {
                 to={link.path}
                 className={({ isActive }) =>
                   `transition-colors hover:text-orange-600 dark:hover:text-orange-500 ${
-                    isActive && link.path === '/'
-                      ? 'text-orange-600 dark:text-orange-500 font-semibold'
-                      : 'text-gray-600 dark:text-gray-300'
+                    isActive ? 'text-orange-600 dark:text-orange-500 font-bold' : 'text-gray-600 dark:text-gray-300'
                   }`
                 }
               >
@@ -69,14 +65,14 @@ export const Navbar = () => {
             ))}
           </nav>
 
-          {/* Compact Search Bar */}
-          <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center flex-1 max-w-xs relative">
+          {/* Search Bar */}
+          <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-xs items-center relative">
             <input
               type="text"
-              placeholder="Search for products..."
+              placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm bg-gray-100 dark:bg-[#17191B] border border-transparent dark:border-[#2A2D32] rounded-full text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500 focus:bg-white dark:focus:bg-[#0F1011] transition-all"
+              className="w-full bg-gray-100 dark:bg-[#17191B] text-gray-900 dark:text-white pl-9 pr-4 py-1.5 text-xs rounded-full border border-transparent focus:border-orange-500 focus:bg-white dark:focus:bg-[#17191B] outline-none transition-all"
             />
             <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
           </form>
@@ -93,26 +89,31 @@ export const Navbar = () => {
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            {/* Wishlist Placeholder (Phase 6) */}
-            <button
-              onClick={() => handlePhase6Notice('Wishlist')}
+            {/* Wishlist Link with Live Count */}
+            <Link
+              to="/wishlist"
               aria-label="Wishlist"
               className="p-2.5 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-gray-100 dark:hover:bg-[#17191B] rounded-full transition-colors relative"
             >
               <Heart className="w-5 h-5" />
-            </button>
+              {wishlistItems.length > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {wishlistItems.length}
+                </span>
+              )}
+            </Link>
 
-            {/* Cart Placeholder (Phase 6) */}
-            <button
-              onClick={() => handlePhase6Notice('Cart')}
+            {/* Cart Link with Live Count */}
+            <Link
+              to="/cart"
               aria-label="Cart"
               className="p-2.5 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-gray-100 dark:hover:bg-[#17191B] rounded-full transition-colors relative"
             >
               <ShoppingBag className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-4 h-4 bg-orange-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                0
+                {totalItems}
               </span>
-            </button>
+            </Link>
 
             {/* User Profile / Auth */}
             {isAuthenticated ? (
@@ -139,79 +140,92 @@ export const Navbar = () => {
                     <Link
                       to="/profile"
                       onClick={() => setUserDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      <User className="w-4 h-4 text-gray-500" />
-                      My Profile
+                      <User className="w-4 h-4" />
+                      <span>My Profile</span>
                     </Link>
 
                     <Link
                       to="/addresses"
                       onClick={() => setUserDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      <ShoppingBag className="w-4 h-4 text-gray-500" />
-                      Shipping Addresses
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>My Addresses</span>
                     </Link>
 
                     <button
                       onClick={() => {
-                        logout();
                         setUserDropdownOpen(false);
+                        logout();
                       }}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors border-t border-gray-100 dark:border-[#2A2D32] mt-1"
+                      className="w-full text-left flex items-center gap-2 px-4 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 border-t border-gray-100 dark:border-[#2A2D32] mt-1"
                     >
                       <LogOut className="w-4 h-4" />
-                      Sign Out
+                      <span>Sign Out</span>
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-full shadow-sm transition-colors"
-              >
-                <User className="w-4 h-4" />
-                <span>Sign In</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-orange-600 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-full transition-colors shadow-sm"
+                >
+                  Sign Up
+                </Link>
+              </div>
             )}
 
-            {/* Mobile Hamburger Toggle */}
+            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#17191B] rounded-lg transition-colors"
+              className="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-orange-600 rounded-lg"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
+
           </div>
+
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-100 dark:border-[#2A2D32] bg-white dark:bg-[#0F1011] px-4 pt-3 pb-6 space-y-4">
+        <div className="lg:hidden bg-white dark:bg-[#17191B] border-b border-gray-200 dark:border-[#2A2D32] px-4 pt-2 pb-6 space-y-4">
           <form onSubmit={handleSearchSubmit} className="relative">
             <input
               type="text"
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-100 dark:bg-[#17191B] border border-transparent dark:border-[#2A2D32] rounded-full text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+              className="w-full bg-gray-100 dark:bg-[#0F1011] text-gray-900 dark:text-white pl-9 pr-4 py-2 text-xs rounded-xl border border-transparent outline-none"
             />
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none" />
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none" />
           </form>
 
           <nav className="flex flex-col space-y-2">
             {navLinks.map((link) => (
-              <Link
+              <NavLink
                 key={link.name}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-200 hover:text-orange-600 dark:hover:text-orange-500 rounded-lg hover:bg-gray-50 dark:hover:bg-[#17191B]"
+                className={({ isActive }) =>
+                  `px-3 py-2 text-sm rounded-lg transition-colors ${
+                    isActive ? 'bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-bold' : 'text-gray-700 dark:text-gray-300'
+                  }`
+                }
               >
                 {link.name}
-              </Link>
+              </NavLink>
             ))}
           </nav>
         </div>

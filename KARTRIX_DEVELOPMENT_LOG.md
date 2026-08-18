@@ -9,10 +9,10 @@
 
 ## Current Status
 
-- Current Phase: Phase 5 — Customer Frontend
+- Current Phase: Phase 6 — Cart + Wishlist
 - Phase Status: COMPLETE
-- Last Completed Task: Phase 5 — Customer Frontend Implementation, Hero Data Integrity Fix & Verification
-- Next Planned Task: Phase 6 — Cart + Wishlist
+- Last Completed Task: Phase 6 — Cart + Wishlist Implementation & Verification
+- Next Planned Task: Phase 7 — Orders + Checkout
 
 ## Phase Progress
 
@@ -23,7 +23,7 @@
 | 3 | Accounts + Authentication | COMPLETE |
 | 4 | Products + Categories | COMPLETE |
 | 5 | Customer Frontend | COMPLETE |
-| 6 | Cart + Wishlist | NOT STARTED |
+| 6 | Cart + Wishlist | COMPLETE |
 | 7 | Orders + Checkout | NOT STARTED |
 | 8 | Razorpay + COD Payment Integration | NOT STARTED |
 | 9 | Reviews System | NOT STARTED |
@@ -326,24 +326,55 @@ Updated `frontend/src/pages/HomePage.jsx` to fetch and display strictly authenti
 - When an authentic product is returned by the Django REST API, the hero section dynamically displays its real `name`, real formatted `starting_price`, real `description`, and real `primary_image`.
 - When no product is returned by the API, the hero section gracefully displays a polished EasyKart-branded empty state (`FEATURED COLLECTION`, `Featured products coming soon`, `We don't have a featured product available right now. Explore our catalog to see all available products.`, `Browse Products` CTA, `View Categories` CTA) without displaying fake names, fake prices, or fake images.
 
-**Phase Boundary Protections:**
-- Cart and Wishlist remain Phase 6 and were NOT implemented (non-functional visual placeholders displaying toast notifications).
-- Orders and Checkout remain Phase 7 and were NOT implemented.
-- Payments remain Phase 8 and were NOT implemented.
-- Reviews remain Phase 9 and were NOT implemented.
-- Admin Panel remains Phase 10 and was NOT implemented in the customer frontend.
-- Recommendation Engine remains Phase 11 and was NOT implemented.
-- Advanced AI/ML remains Phase 12 and was NOT implemented.
+---
 
-**Backend & Architecture Protections:**
-- `backend/` directory remained 100% untouched (0 changes).
-- No database migrations or schema alterations were created.
-- No fake API endpoints or fake database products were created.
+### 2026-08-19 — Phase 6: Cart + Wishlist
+
+**Phase:**
+Phase 6 — Cart + Wishlist
+
+**Objective:**
+Implement complete customer-facing Shopping Cart and Wishlist functionality strictly as specified in `Kartrix_Architecture_Blueprint.md`. Build backend REST APIs for Cart and Wishlist operations with stock validation, user isolation, item subtotals, and duplicate handling. Build frontend Cart and Wishlist state contexts, API service modules, responsive Cart Page (`/cart`), Wishlist Page (`/wishlist`), item rows, summary card, and connect live Navbar count badges, Product Card heart toggles, and Product Detail page buttons.
+
+**Changes Made:**
+- `backend/cart/serializers.py`:
+  - Created `CartItemSerializer` and `CartSerializer`. Implemented real-time item subtotal calculation, cart subtotal calculation, active product validation, and stock limit checks (`quantity <= variant.inventory.available_stock`).
+- `backend/cart/views.py`:
+  - Created `CartViewSet` (`GET /api/cart/`, `POST /api/cart/clear/`) and `CartItemViewSet` (`POST /api/cart/items/`, `PATCH /api/cart/items/{id}/`, `DELETE /api/cart/items/{id}/`) scoped strictly to `request.user`. Implemented duplicate item addition handling (`quantity += requested_quantity`).
+- `backend/cart/urls.py`:
+  - Mapped cart endpoints and item router URLs.
+- `backend/wishlist/serializers.py`:
+  - Created `WishlistItemSerializer` enforcing active product validation and unique product check.
+- `backend/wishlist/views.py`:
+  - Created `WishlistItemViewSet` (`GET /api/wishlist/items/`, `DELETE /api/wishlist/items/{id}/`) and a custom `toggle` endpoint (`POST /api/wishlist/toggle/`).
+- `backend/wishlist/urls.py`:
+  - Mapped wishlist endpoints and router URLs.
+- `backend/easykart/urls.py`:
+  - Included `api/cart/` and `api/wishlist/` routes in main URL configuration.
+- `backend/cart/tests.py` & `backend/wishlist/tests.py`:
+  - Implemented 12 comprehensive unit tests covering cart retrieval, item additions, quantity updates, stock limit enforcement, item deletions, clear cart, wishlist toggles, duplicate prevention, and user data isolation.
+- `frontend/src/api/cartApi.js` & `wishlistApi.js`:
+  - Implemented frontend API service modules wrapping Axios requests.
+- `frontend/src/context/CartContext.jsx` & `WishlistContext.jsx`:
+  - Implemented global Cart and Wishlist React state providers managing live item arrays, total count badges, subtotals, toast alerts, and automatic API sync.
+- `frontend/src/components/cart/CartItemRow.jsx` & `CartSummary.jsx`:
+  - Built Cart item row component with quantity stepper `[- 1 +]`, subtotal calculation, trash button, and Order Summary card with Phase 7 checkout placeholder button (*"Proceed to Checkout (Phase 7)"*).
+- `frontend/src/pages/CartPage.jsx` & `WishlistPage.jsx`:
+  - Built `/cart` and `/wishlist` customer pages with empty states, loading skeletons, Move to Cart actions, and responsive desktop/mobile layouts.
+- `frontend/src/components/layout/Navbar.jsx`, `ProductCard.jsx`, `ProductDetailPage.jsx`, `App.jsx`:
+  - Connected live Cart and Wishlist count badges to Navbar, live heart toggle with fill indicator to ProductCard, live Add to Cart / Wishlist buttons to ProductDetailPage, and declared protected `/cart` & `/wishlist` SPA routes in `App.jsx`.
+
+**App Isolation & Phase Boundary Protections:**
+- **Zero** database schema modifications or migrations created.
+- Orders & Checkout remain Phase 7 and were NOT implemented (Checkout button displays informative Phase 7 toast).
+- Payments (Phase 8), Reviews (Phase 9), Admin Panel (Phase 10), Recommendations (Phase 11), and AI/ML (Phase 12) remain un-implemented and locked to their respective future phases.
+- Phase 1–5 backend and frontend functionality remains 100% preserved.
 
 **Verification & Test Results:**
-- `npm run build` (in `frontend/`) — Result: `✓ built in 21.36s` (1942 modules transformed, 0 errors).
 - `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
+- `python backend/manage.py test cart` — Result: `Ran 8 tests in 41.008s... OK (100% pass rate).`
+- `python backend/manage.py test wishlist` — Result: `Ran 4 tests in 22.524s... OK (100% pass rate).`
 - `python backend/manage.py test accounts` — Result: `Ran 13 tests... OK (100% pass rate).`
 - `python backend/manage.py test products` — Result: `Ran 13 tests... OK (100% pass rate).`
 - `python backend/manage.py makemigrations --check --dry-run` — Result: `No changes detected.`
-- `git status backend/` — Result: `nothing to commit, working tree clean`.
+- `npm run build` (in `frontend/`) — Result: `✓ built in 20.63s` (1950 modules transformed, 0 errors).

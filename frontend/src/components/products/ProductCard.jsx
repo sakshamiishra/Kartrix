@@ -1,20 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { Heart, ShoppingBag } from 'lucide-react';
-import { useToast } from '../../context/ToastContext';
+import { Heart } from 'lucide-react';
+import { useWishlist } from '../../context/WishlistContext';
 
 export const ProductCard = ({ product }) => {
-  const { showToast } = useToast();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const saved = isInWishlist(product.id);
 
   const handleWishlistClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    showToast('Wishlist features will unlock in Phase 6.', 'info');
+    toggleWishlist(product);
   };
 
   const API_BASE_URL = 'http://localhost:8000';
   
-  // Format image URL
   const getImageUrl = () => {
     if (!product.primary_image) {
       return 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=600';
@@ -25,7 +25,6 @@ export const ProductCard = ({ product }) => {
     return `${API_BASE_URL}${product.primary_image}`;
   };
 
-  // Format price
   const displayPrice = product.starting_price 
     ? `$${parseFloat(product.starting_price).toFixed(2)}`
     : '$0.00';
@@ -48,13 +47,17 @@ export const ProductCard = ({ product }) => {
           }}
         />
 
-        {/* Wishlist Icon Placeholder */}
+        {/* Live Wishlist Toggle Button */}
         <button
           onClick={handleWishlistClick}
           aria-label="Add to wishlist"
-          className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 dark:bg-[#17191B]/90 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 hover:bg-white flex items-center justify-center shadow-sm backdrop-blur-sm transition-all"
+          className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center shadow-sm backdrop-blur-sm transition-all ${
+            saved
+              ? 'bg-rose-500 text-white hover:bg-rose-600'
+              : 'bg-white/90 dark:bg-[#17191B]/90 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-500 hover:bg-white'
+          }`}
         >
-          <Heart className="w-4 h-4" />
+          <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
         </button>
       </div>
 
