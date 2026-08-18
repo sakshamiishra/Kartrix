@@ -9,17 +9,17 @@
 
 ## Current Status
 
-- Current Phase: Phase 1 — Project Setup & Backend Configuration
+- Current Phase: Phase 2 — Database + Django Configuration
 - Phase Status: COMPLETE
-- Last Completed Task: Phase 1 — Project Setup & Backend Configuration
-- Next Planned Task: Phase 2 — Database + Django Configuration
+- Last Completed Task: Phase 2 — Database + Django Configuration
+- Next Planned Task: Phase 3 — Accounts + Authentication
 
 ## Phase Progress
 
 | Phase | Description | Status |
 |------|-------------|--------|
 | 1 | Project Setup & Backend Configuration | COMPLETE |
-| 2 | Database + Django Configuration | NOT STARTED |
+| 2 | Database + Django Configuration | COMPLETE |
 | 3 | Accounts + Authentication | NOT STARTED |
 | 4 | Products + Categories | NOT STARTED |
 | 5 | Customer Frontend | NOT STARTED |
@@ -90,3 +90,62 @@ Complete the core backend setup, Django configuration, environment variable deco
   - Result: `System check identified no issues (0 silenced).`
 - `python backend/manage.py showmigrations`
   - Result: `Successful database connection to PostgreSQL (easykart_db) and verified initial migrations.`
+
+---
+
+### 2026-08-18 — Phase 2: Database + Django Domain Configuration
+
+**Phase:**
+Phase 2 — Database + Django Configuration
+
+**Objective:**
+Establish all 11 modular Django applications (`accounts`, `products`, `cart`, `wishlist`, `orders`, `payments`, `reviews`, `recommendations`, `analytics`, `search`, `notifications`), implement custom `User` model, construct complete domain models, relationships, field constraints, indexes, choices, and Django admin registrations as specified in `Kartrix_Architecture_Blueprint.md`.
+
+**Changes Made:**
+- `backend/easykart/settings.py`:
+  - Set `AUTH_USER_MODEL = 'accounts.User'` to register the custom user model.
+  - Added all 11 local domain apps (`accounts`, `products`, `cart`, `wishlist`, `orders`, `payments`, `reviews`, `recommendations`, `analytics`, `search`, `notifications`) to `INSTALLED_APPS`.
+  - Why: Connect custom user authentication and domain apps to Django settings.
+- `backend/requirements.txt`:
+  - Added `Pillow==12.3.0`.
+  - Why: Support Django `ImageField` in `Category`, `Brand`, `ProductImage`, and `ReviewImage`.
+- Created Django Domain Apps & Models:
+  - `backend/accounts/`: `User` (custom `AbstractBaseUser` using email as `USERNAME_FIELD`), `Address` (shipping addresses with default selection).
+  - `backend/products/`: `Category`, `Brand`, `Product`, `ProductImage`, `ProductAttribute`, `AttributeValue`, `ProductVariant`, `Inventory`, `InventoryTransaction`.
+  - `backend/cart/`: `Cart`, `CartItem`.
+  - `backend/wishlist/`: `WishlistItem` (with `unique_together=('user', 'product')`).
+  - `backend/orders/`: `Order`, `OrderItem` (storing historical snapshot of `product_name` and `unit_price`), `OrderStatusHistory`, `Coupon`, `CouponUsage`.
+  - `backend/payments/`: `Payment` (linked to `Order` with `RAZORPAY` and `COD` choices).
+  - `backend/reviews/`: `Review` (rating 1-5 validator, verified purchase flag), `ReviewImage`.
+  - `backend/notifications/`: `Notification` (with JSON `data` payload).
+  - `backend/analytics/`: `UserActivity` (behavioral event tracking supporting both user and anonymous `session_id`).
+  - `backend/recommendations/` & `backend/search/`: Created baseline app structures.
+  - Added Django admin registrations for all models across apps.
+
+**Dependencies Added:**
+- `Pillow==12.3.0`: Image processing engine required for Django `ImageField`.
+
+**Database Changes:**
+- Reset PostgreSQL public schema cleanly and executed `python backend/manage.py migrate` from scratch with `AUTH_USER_MODEL = 'accounts.User'`.
+- All 27 initial migrations applied with `OK` (including `accounts.0001_initial` prior to `admin.0001_initial`).
+- Created 34 physical database tables in PostgreSQL public schema (25 domain model tables + 9 framework tables).
+
+**API Changes:**
+- None (Phase 2 focuses strictly on Django domain models and database configuration).
+
+**Frontend Changes:**
+- None
+
+**Configuration Changes:**
+- `AUTH_USER_MODEL = 'accounts.User'` in `settings.py`.
+- 11 domain apps added to `INSTALLED_APPS` in `settings.py`.
+
+**Verification:**
+- `python backend/manage.py check`
+  - Result: `System check identified no issues (0 silenced).`
+- `python backend/manage.py migrate`
+  - Result: `All 27 migrations applied cleanly (accounts.0001_initial, products.0001_initial, cart.0001_initial, wishlist.0001_initial, orders.0001_initial, payments.0001_initial, reviews.0001_initial, notifications.0001_initial, analytics.0001_initial, etc.).`
+- `python backend/manage.py showmigrations`
+  - Result: `All 27 migrations marked as applied [X].`
+- Table Existence Verification:
+  - Result: `34 tables verified in PostgreSQL public schema including all 25 Phase 2 model tables.`

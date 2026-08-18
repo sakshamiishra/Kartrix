@@ -31,7 +31,24 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'drf_spectacular',
+
+    # Local apps
+    'accounts',
+    'products',
+    'cart',
+    'wishlist',
+    'orders',
+    'payments',
+    'reviews',
+    'recommendations',
+    'analytics',
+    'search',
+    'notifications',
 ]
+
+# Custom User Model
+AUTH_USER_MODEL = 'accounts.User'
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
