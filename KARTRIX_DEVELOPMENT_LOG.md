@@ -9,10 +9,10 @@
 
 ## Current Status
 
-- Current Phase: Phase 3 — Accounts + Authentication
+- Current Phase: Phase 4 — Products + Categories
 - Phase Status: COMPLETE
-- Last Completed Task: Phase 3 — Accounts + Authentication Implementation & Verification
-- Next Planned Task: Phase 4 — Products + Categories
+- Last Completed Task: Phase 4 — Products + Categories API Implementation & Verification
+- Next Planned Task: Phase 5 — Customer Frontend
 
 ## Phase Progress
 
@@ -21,7 +21,7 @@
 | 1 | Project Setup & Backend Configuration | COMPLETE |
 | 2 | Database + Django Configuration | COMPLETE |
 | 3 | Accounts + Authentication | COMPLETE |
-| 4 | Products + Categories | NOT STARTED |
+| 4 | Products + Categories | COMPLETE |
 | 5 | Customer Frontend | NOT STARTED |
 | 6 | Cart + Wishlist | NOT STARTED |
 | 7 | Orders + Checkout | NOT STARTED |
@@ -203,3 +203,67 @@ Implement the locked Email + Password authentication architecture, JWT access an
 - `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
 - `python backend/manage.py test accounts` — Result: `Ran 13 tests in 77.794s... OK (100% pass rate).`
 - OpenAPI/Swagger Verification — Result: All endpoints automatically registered and displayed in Swagger UI at `/api/docs/`.
+
+---
+
+### 2026-08-18 — Phase 4: Products + Categories
+
+**Phase:**
+Phase 4 — Products + Categories
+
+**Objective:**
+Implement public catalog browsing, category/brand listing & filtering, product search, price range filtering, pagination, variant & attribute management, inventory audit transactions, and staff-only catalog management strictly as specified in `Kartrix_Architecture_Blueprint.md`.
+
+**Changes Made:**
+- `backend/requirements.txt`:
+  - Added `django-filter==25.1` dependency as required for URL query parameter filtering.
+- `backend/easykart/settings.py`:
+  - Added `django_filters` to `INSTALLED_APPS`.
+  - Configured `REST_FRAMEWORK['DEFAULT_FILTER_BACKENDS']` with `DjangoFilterBackend`, `SearchFilter`, and `OrderingFilter`.
+  - Global pagination was NOT enabled in `settings.py`, preserving Phase 3 Accounts API response behavior and keeping `backend/accounts/` 100% clean and unmodified.
+- `backend/products/permissions.py`:
+  - Created `IsAdminOrReadOnly` (public read for active items, staff write) and `IsStaffUser` (staff-only inventory management) permissions.
+- `backend/products/filters.py`:
+  - Created `ProductFilter` supporting category (ID or slug), brand (ID or slug), price range (`min_price`, `max_price`), and `is_active` filtering.
+- `backend/products/serializers.py`:
+  - Created serializers for Category, Brand, ProductImage, ProductAttribute, AttributeValue, Inventory, InventoryTransaction, ProductVariant, ProductList, ProductDetail, and ProductCreateUpdate.
+  - Implemented automatic stock level adjustment in `InventoryTransactionSerializer.create()`.
+- `backend/products/views.py`:
+  - Implemented ViewSets for Category, Brand, Product, ProductImage, ProductAttribute, AttributeValue, ProductVariant, Inventory, and InventoryTransaction.
+  - Configured view-level `CatalogPagination` (`page_size = 12`, `page_size_query_param = 'page_size'`) specifically on `CategoryViewSet`, `BrandViewSet`, and `ProductViewSet`.
+  - Enforced active-only visibility for public users while allowing staff users full catalog access.
+- `backend/products/urls.py`:
+  - Mapped app endpoints via DRF `DefaultRouter`.
+- `backend/easykart/urls.py`:
+  - Included `products.urls` under `/api/products/`.
+- `backend/products/tests.py`:
+  - Implemented 13 comprehensive unit/integration tests using isolated test database users.
+
+**App Isolation & Database Integrity:**
+- `backend/accounts/` app was not modified; `backend/accounts/` is 100% clean (`working tree clean`).
+- `products/models.py` was not modified.
+- `products/migrations/` was not modified.
+- No migration files were created.
+- No database migrations or destructive schema commands were executed.
+- No unauthorized modifications or blueprint deviations were introduced.
+
+**APIs Implemented:**
+- `GET /api/products/categories/` (Public) — List active categories with view-level pagination.
+- `GET /api/products/categories/{id_or_slug}/` (Public) — Retrieve category detail.
+- `POST/PUT/DELETE /api/products/categories/` (Staff Admin) — Category CRUD.
+- `GET /api/products/brands/` (Public) — List active brands with view-level pagination.
+- `GET /api/products/brands/{id_or_slug}/` (Public) — Retrieve brand detail.
+- `POST/PUT/DELETE /api/products/brands/` (Staff Admin) — Brand CRUD.
+- `GET /api/products/products/` (Public) — Catalog list with search, category/brand filters, price range, ordering, and view-level pagination.
+- `GET /api/products/products/{id_or_slug}/` (Public) — Full product detail with gallery images, variants, attributes, and stock status.
+- `POST/PUT/DELETE /api/products/products/` (Staff Admin) — Product CRUD.
+- `GET/POST/PUT/DELETE /api/products/variants/` (Public Read / Staff Write) — Variant CRUD.
+- `GET/POST/PUT/DELETE /api/products/inventories/` (Staff Admin) — Inventory stock level management.
+- `GET/POST /api/products/inventory-transactions/` (Staff Admin) — Inventory transaction audit log with automatic `created_by` attribution.
+
+**Verification & Test Results:**
+- `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
+- `python backend/manage.py test accounts` — Result: `Ran 13 tests in 90.474s... OK (100% pass rate).`
+- `python backend/manage.py test products` — Result: `Ran 13 tests in 69.942s... OK (100% pass rate).`
+- `python backend/manage.py makemigrations --check --dry-run` — Result: `No changes detected.`
+- OpenAPI/Swagger Verification — Result: All 9 product router ViewSets registered in Swagger UI at `/api/docs/`.
