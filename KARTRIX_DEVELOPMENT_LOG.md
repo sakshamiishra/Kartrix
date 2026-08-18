@@ -9,10 +9,10 @@
 
 ## Current Status
 
-- Current Phase: Phase 2 — Database + Django Configuration
+- Current Phase: Phase 3 — Accounts + Authentication
 - Phase Status: COMPLETE
-- Last Completed Task: Phase 2 — Database + Django Configuration
-- Next Planned Task: Phase 3 — Accounts + Authentication
+- Last Completed Task: Phase 3 — Accounts + Authentication Implementation & Verification
+- Next Planned Task: Phase 4 — Products + Categories
 
 ## Phase Progress
 
@@ -20,7 +20,7 @@
 |------|-------------|--------|
 | 1 | Project Setup & Backend Configuration | COMPLETE |
 | 2 | Database + Django Configuration | COMPLETE |
-| 3 | Accounts + Authentication | NOT STARTED |
+| 3 | Accounts + Authentication | COMPLETE |
 | 4 | Products + Categories | NOT STARTED |
 | 5 | Customer Frontend | NOT STARTED |
 | 6 | Cart + Wishlist | NOT STARTED |
@@ -31,7 +31,7 @@
 | 11 | Basic Recommendation Engine | NOT STARTED |
 | 12 | Advanced Features / AI/ML | NOT STARTED |
 
-## Completed Work
+## Completed Work & Milestone Log
 
 ### 2026-08-18 — Phase 1: Project Setup & Backend Configuration
 
@@ -39,20 +39,21 @@
 Phase 1 — Project Setup & Backend Configuration
 
 **Objective:**
-Complete the core backend setup, Django configuration, environment variable decoupling, third-party package integrations (DRF, CORS, OpenAPI/Swagger UI, JWT), and media asset routing for Kartrix 2.0.
+Establish the core Django 6.1 backend framework, configure environment variables using `python-decouple`, set up PostgreSQL database connection settings, implement CORS handling, integrate DRF with OpenAPI/Swagger UI documentation via `drf-spectacular`, and add dependencies for JWT authentication (`djangorestframework-simplejwt`) and image handling (`Pillow`).
 
 **Changes Made:**
 - `backend/requirements.txt`:
-  - Added dependencies for DRF, CORS handling, OpenAPI/Swagger generation, and JWT token management.
-  - Why: Document and lock backend tech stack dependencies as defined in the architecture blueprint.
+  - Added dependencies for `Django==6.1`, `djangorestframework==3.18.0`, `django-cors-headers==4.9.0`, `drf-spectacular==0.30.0`, `djangorestframework-simplejwt==5.5.1`, `Pillow==12.3.0`, `psycopg==3.3.4`, `psycopg-binary==3.3.4`, `python-decouple==3.8`, `sqlparse==0.6.0`, `tzdata==2026.3`.
+  - Why: Lock technology stack dependencies as defined in the architecture blueprint.
 - `.env.example`:
-  - Created environment variable template containing default configurations for `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, PostgreSQL parameters (`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`), and `CORS_ALLOWED_ORIGINS`.
-  - Why: Provide standard reference configuration for setup across environments.
+  - Created reference template containing configurations for `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, PostgreSQL parameters (`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`), and `CORS_ALLOWED_ORIGINS`.
+  - Why: Standardize environment setup across development and production.
 - `.env`:
   - Configured local environment variables for Django settings, PostgreSQL database connection, and local React frontend CORS origins.
-  - Why: Keep secret keys and environment configurations out of source control.
+  - Why: Keep credentials out of source code control.
 - `backend/easykart/settings.py`:
-  - Integrated `corsheaders`, `rest_framework`, and `drf_spectacular` into `INSTALLED_APPS`.
+  - Preserved existing Django configuration package name `easykart`.
+  - Added `corsheaders`, `rest_framework`, and `drf_spectacular` to `INSTALLED_APPS`.
   - Added `corsheaders.middleware.CorsMiddleware` to `MIDDLEWARE`.
   - Decoupled `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, and `CORS_ALLOWED_ORIGINS` via `python-decouple`.
   - Configured `REST_FRAMEWORK` default schema class to `drf_spectacular.openapi.AutoSchema` and default authentication to `JWTAuthentication` & `SessionAuthentication`.
@@ -65,31 +66,27 @@ Complete the core backend setup, Django configuration, environment variable deco
   - Why: Expose API documentation endpoints and enable media file serving during local development.
 
 **Dependencies Added:**
+- `Django==6.1`: Core backend web framework.
+- `djangorestframework==3.18.0`: REST API toolkit.
 - `django-cors-headers==4.9.0`: Enables CORS support for decoupled React SPAs.
-- `drf-spectacular==0.30.0`: Generates OpenAPI 3 schema and Swagger UI documentation.
-- `djangorestframework-simplejwt==5.5.1`: Authentication handling for JWT access and refresh tokens.
-- Supporting transitive dependencies: `PyYAML==6.0.3`, `attrs==26.1.0`, `inflection==0.5.1`, `jsonschema==4.26.0`, `jsonschema-specifications==2025.9.1`, `pyjwt==2.13.0`, `referencing==0.37.0`, `rpds-py==2026.6.3`, `uritemplate==4.2.0`.
+- `drf-spectacular==0.30.0`: OpenAPI 3 schema and Swagger UI documentation generator.
+- `djangorestframework-simplejwt==5.5.1`: JWT access and refresh token handler.
+- `Pillow==12.3.0`: Image processing library required for Django `ImageField`.
+- Supporting dependencies: `psycopg==3.3.4`, `python-decouple==3.8`, `sqlparse==0.6.0`, `tzdata==2026.3`.
 
 **Database Changes:**
-- None (Verified existing PostgreSQL connectivity and existing core Django migrations).
+- Configured PostgreSQL connection in `.env` and `settings.py`.
 
 **API Changes:**
-- `/api/schema/` (GET) — Serves generated OpenAPI 3 schema specification (No auth required).
-- `/api/docs/` (GET) — Serves interactive Swagger UI API documentation (No auth required).
-- `/api/redoc/` (GET) — Serves ReDoc API documentation (No auth required).
+- `/api/schema/` (GET) — Serves OpenAPI 3 schema specification.
+- `/api/docs/` (GET) — Serves interactive Swagger UI documentation.
+- `/api/redoc/` (GET) — Serves ReDoc documentation.
 
 **Frontend Changes:**
-- None
-
-**Configuration Changes:**
-- `.env` configured with PostgreSQL connection parameters, Django security keys, and CORS allowed origins.
-- `backend/easykart/settings.py` updated with DRF, CORS, OpenAPI, and media/static settings.
+- None (Frontend decoupled SPAs planned for Phase 5).
 
 **Verification:**
-- `python backend/manage.py check`
-  - Result: `System check identified no issues (0 silenced).`
-- `python backend/manage.py showmigrations`
-  - Result: `Successful database connection to PostgreSQL (easykart_db) and verified initial migrations.`
+- `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
 
 ---
 
@@ -106,10 +103,7 @@ Establish all 11 modular Django applications (`accounts`, `products`, `cart`, `w
   - Set `AUTH_USER_MODEL = 'accounts.User'` to register the custom user model.
   - Added all 11 local domain apps (`accounts`, `products`, `cart`, `wishlist`, `orders`, `payments`, `reviews`, `recommendations`, `analytics`, `search`, `notifications`) to `INSTALLED_APPS`.
   - Why: Connect custom user authentication and domain apps to Django settings.
-- `backend/requirements.txt`:
-  - Added `Pillow==12.3.0`.
-  - Why: Support Django `ImageField` in `Category`, `Brand`, `ProductImage`, and `ReviewImage`.
-- Created Django Domain Apps & Models:
+- Created 11 Django Domain Apps & Models:
   - `backend/accounts/`: `User` (custom `AbstractBaseUser` using email as `USERNAME_FIELD`), `Address` (shipping addresses with default selection).
   - `backend/products/`: `Category`, `Brand`, `Product`, `ProductImage`, `ProductAttribute`, `AttributeValue`, `ProductVariant`, `Inventory`, `InventoryTransaction`.
   - `backend/cart/`: `Cart`, `CartItem`.
@@ -119,33 +113,93 @@ Establish all 11 modular Django applications (`accounts`, `products`, `cart`, `w
   - `backend/reviews/`: `Review` (rating 1-5 validator, verified purchase flag), `ReviewImage`.
   - `backend/notifications/`: `Notification` (with JSON `data` payload).
   - `backend/analytics/`: `UserActivity` (behavioral event tracking supporting both user and anonymous `session_id`).
-  - `backend/recommendations/` & `backend/search/`: Created baseline app structures.
-  - Added Django admin registrations for all models across apps.
+  - `backend/recommendations/` & `backend/search/`: Baseline app structures.
+  - Added Django admin registrations (`admin.py`) for all models across apps.
 
-**Dependencies Added:**
-- `Pillow==12.3.0`: Image processing engine required for Django `ImageField`.
+**Migration Diagnosis & Resolution:**
+- **Problem:** Initial `migrate` in Phase 1 ran before setting `AUTH_USER_MODEL = 'accounts.User'`, recording `admin.0001_initial` under standard `auth.User`. In Phase 2, setting `AUTH_USER_MODEL` caused Django's dependency loader to require `accounts.0001_initial` before `admin.0001_initial`, resulting in an `InconsistentMigrationHistory` error when migrating.
+- **Resolution:** Because the development database contained only default framework tables and zero application data, the PostgreSQL `public` schema was cleanly reset (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`).
+- **Migration Execution:** `python backend/manage.py migrate` was executed cleanly from scratch. All 27 migrations applied with `OK`, applying `accounts.0001_initial` prior to `admin.0001_initial`.
 
 **Database Changes:**
-- Reset PostgreSQL public schema cleanly and executed `python backend/manage.py migrate` from scratch with `AUTH_USER_MODEL = 'accounts.User'`.
-- All 27 initial migrations applied with `OK` (including `accounts.0001_initial` prior to `admin.0001_initial`).
-- Created 34 physical database tables in PostgreSQL public schema (25 domain model tables + 9 framework tables).
+- Generated initial migrations for all 9 model apps (`accounts`, `products`, `cart`, `wishlist`, `orders`, `payments`, `reviews`, `notifications`, `analytics`).
+- Verified 34 physical tables created in PostgreSQL `easykart_db` public schema (25 Phase 2 domain tables + 9 Django framework tables).
 
-**API Changes:**
-- None (Phase 2 focuses strictly on Django domain models and database configuration).
+**Verification & Read-Only Audit:**
+- `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
+- `python backend/manage.py showmigrations` — Result: `All 27 migrations marked as applied [X].`
+- `python backend/manage.py makemigrations --check --dry-run` — Result: `No changes detected.`
+- **Phase 2 Read-Only Audit Result:** **PASS** (0 critical issues, 0 warnings).
 
-**Frontend Changes:**
-- None
+---
 
-**Configuration Changes:**
-- `AUTH_USER_MODEL = 'accounts.User'` in `settings.py`.
-- 11 domain apps added to `INSTALLED_APPS` in `settings.py`.
+### 2026-08-18 — Git Checkpoint: Phase 2 Local Commit & Remote Push
 
-**Verification:**
-- `python backend/manage.py check`
-  - Result: `System check identified no issues (0 silenced).`
-- `python backend/manage.py migrate`
-  - Result: `All 27 migrations applied cleanly (accounts.0001_initial, products.0001_initial, cart.0001_initial, wishlist.0001_initial, orders.0001_initial, payments.0001_initial, reviews.0001_initial, notifications.0001_initial, analytics.0001_initial, etc.).`
-- `python backend/manage.py showmigrations`
-  - Result: `All 27 migrations marked as applied [X].`
-- Table Existence Verification:
-  - Result: `34 tables verified in PostgreSQL public schema including all 25 Phase 2 model tables.`
+**Details:**
+- **Branch:** `main`
+- **Commit Hash:** `e71fad1c6daf0a1b4713ca07e02d0a441f13c3f4`
+- **Commit Message:** `Complete Phase 2 database and Django domain configuration`
+- **Remote Synchronization:** Pushed to private GitHub repository (`origin/main`).
+- **Working Tree State:** Clean (`nothing to commit, working tree clean`).
+
+---
+
+### 2026-08-18 — Phase 3: Accounts + Authentication
+
+**Phase:**
+Phase 3 — Accounts + Authentication
+
+**Objective:**
+Implement the locked Email + Password authentication architecture, JWT access and refresh token system, user profile management, password change API, address CRUD operations with default selection logic, and object-level permission enforcement strictly as specified in `Kartrix_Architecture_Blueprint.md`.
+
+**Changes Made:**
+- `backend/accounts/permissions.py`:
+  - Created `IsOwner` and `IsOwnerOrAdmin` custom permission classes to ensure strict user data isolation.
+- `backend/accounts/serializers.py`:
+  - `UserRegisterSerializer`: Validates email uniqueness and password match, creates user via `User.objects.create_user`.
+  - `UserSerializer`: Serializes user profile attributes with read-only protections on sensitive/system fields (`id`, `email`, `is_staff`, `is_superuser`, etc.).
+  - `ChangePasswordSerializer`: Validates `old_password` and new password confirmation.
+  - `AddressSerializer`: Full CRUD serializer for shipping addresses, enforcing automatic default selection for the first address and single default address logic across user addresses.
+  - `CustomTokenObtainPairSerializer`: Custom JWT payload returning access token, refresh token, and user metadata (`id`, `email`, `first_name`, `last_name`, `is_staff`).
+- `backend/accounts/views.py`:
+  - `RegisterView`: Public endpoint returning created user profile and JWT tokens upon successful registration.
+  - `CustomTokenObtainPairView`: Public JWT login endpoint.
+  - `UserProfileView`: Authenticated endpoint (`GET`, `PUT`, `PATCH`) for current user profile.
+  - `ChangePasswordView`: Authenticated endpoint (`POST`) validating current password and setting new password.
+  - `AddressViewSet`: Authenticated `ModelViewSet` scoped strictly to `request.user` (`Address.objects.filter(user=request.user)`), featuring a custom `set-default` action endpoint (`POST /api/accounts/addresses/{id}/set-default/`).
+- `backend/accounts/urls.py`:
+  - Mapped app endpoints: `register/`, `login/`, `token/refresh/`, `profile/`, `change-password/`, and `addresses/` router.
+- `backend/easykart/urls.py`:
+  - Included `accounts.urls` under `api/accounts/`.
+- `backend/easykart/settings.py`:
+  - Configured `SIMPLE_JWT` parameters (access token lifetime: 60 min, refresh token lifetime: 7 days, `ROTATE_REFRESH_TOKENS = True`, `Bearer` header type).
+- `backend/accounts/tests.py`:
+  - Implemented 13 comprehensive unit tests using DRF `APITestCase`.
+
+**APIs Implemented:**
+- `POST /api/accounts/register/` (Public) — Register account & return JWT access/refresh tokens.
+- `POST /api/accounts/login/` (Public) — JWT login with email & password.
+- `POST /api/accounts/token/refresh/` (Public) — Refresh JWT access token.
+- `GET /api/accounts/profile/` (Authenticated) — Retrieve current user profile.
+- `PUT/PATCH /api/accounts/profile/` (Authenticated) — Update current user profile.
+- `POST /api/accounts/change-password/` (Authenticated) — Change password with old password verification.
+- `GET /api/accounts/addresses/` (Authenticated) — List user's shipping addresses.
+- `POST /api/accounts/addresses/` (Authenticated) — Create a new shipping address.
+- `GET /api/accounts/addresses/{id}/` (Authenticated Owner) — Retrieve specific shipping address.
+- `PUT/PATCH /api/accounts/addresses/{id}/` (Authenticated Owner) — Update shipping address.
+- `DELETE /api/accounts/addresses/{id}/` (Authenticated Owner) — Delete shipping address.
+- `POST /api/accounts/addresses/{id}/set-default/` (Authenticated Owner) — Set shipping address as default.
+
+**Dependencies Added:**
+- None (Reused `djangorestframework-simplejwt` installed in Phase 1).
+
+**Database Changes:**
+- None required (Utilized existing `accounts_user` and `accounts_address` schema from Phase 2).
+
+**Migration Impact:**
+- `python backend/manage.py makemigrations --check --dry-run` — Result: `No changes detected.`
+
+**Verification & Test Results:**
+- `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
+- `python backend/manage.py test accounts` — Result: `Ran 13 tests in 77.794s... OK (100% pass rate).`
+- OpenAPI/Swagger Verification — Result: All endpoints automatically registered and displayed in Swagger UI at `/api/docs/`.
