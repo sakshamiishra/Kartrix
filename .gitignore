@@ -193,4 +193,12 @@ chroma_db/
 .vscode/
 .idea/
 
+
+# React / Vite local files
+node_modules/
+dist-ssr/
+.env.local
+.env.*.local
+
+
 # End of https://www.toptal.com/developers/gitignore/api/django,react
