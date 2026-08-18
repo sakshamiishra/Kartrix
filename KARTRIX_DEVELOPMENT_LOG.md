@@ -9,10 +9,10 @@
 
 ## Current Status
 
-- Current Phase: Phase 4 — Products + Categories
+- Current Phase: Phase 5 — Customer Frontend
 - Phase Status: COMPLETE
-- Last Completed Task: Phase 4 — Products + Categories API Implementation & Verification
-- Next Planned Task: Phase 5 — Customer Frontend
+- Last Completed Task: Phase 5 — Customer Frontend Implementation & UI/UX Verification
+- Next Planned Task: Phase 6 — Cart + Wishlist
 
 ## Phase Progress
 
@@ -22,7 +22,7 @@
 | 2 | Database + Django Configuration | COMPLETE |
 | 3 | Accounts + Authentication | COMPLETE |
 | 4 | Products + Categories | COMPLETE |
-| 5 | Customer Frontend | NOT STARTED |
+| 5 | Customer Frontend | COMPLETE |
 | 6 | Cart + Wishlist | NOT STARTED |
 | 7 | Orders + Checkout | NOT STARTED |
 | 8 | Razorpay + COD Payment Integration | NOT STARTED |
@@ -257,9 +257,9 @@ Implement public catalog browsing, category/brand listing & filtering, product s
 - `GET /api/products/products/` (Public) — Catalog list with search, category/brand filters, price range, ordering, and view-level pagination.
 - `GET /api/products/products/{id_or_slug}/` (Public) — Full product detail with gallery images, variants, attributes, and stock status.
 - `POST/PUT/DELETE /api/products/products/` (Staff Admin) — Product CRUD.
-- `GET/POST/PUT/DELETE /api/products/variants/` (Public Read / Staff Write) — Variant CRUD.
-- `GET/POST/PUT/DELETE /api/products/inventories/` (Staff Admin) — Inventory stock level management.
-- `GET/POST /api/products/inventory-transactions/` (Staff Admin) — Inventory transaction audit log with automatic `created_by` attribution.
+- `GET/POST/PUT/DELETE /api/variants/` (Public Read / Staff Write) — Variant CRUD.
+- `GET/POST/PUT/DELETE /api/inventories/` (Staff Admin) — Inventory stock level management.
+- `GET/POST /api/inventory-transactions/` (Staff Admin) — Inventory transaction audit log with automatic `created_by` attribution.
 
 **Verification & Test Results:**
 - `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
@@ -267,3 +267,62 @@ Implement public catalog browsing, category/brand listing & filtering, product s
 - `python backend/manage.py test products` — Result: `Ran 13 tests in 69.942s... OK (100% pass rate).`
 - `python backend/manage.py makemigrations --check --dry-run` — Result: `No changes detected.`
 - OpenAPI/Swagger Verification — Result: All 9 product router ViewSets registered in Swagger UI at `/api/docs/`.
+
+---
+
+### 2026-08-18 — Phase 5: Customer Frontend
+
+**Phase:**
+Phase 5 — Customer Frontend
+
+**Objective:**
+Build the complete EasyKart 2.0 Customer Frontend SPA using React 19, Vite, Tailwind CSS v3, React Router, Axios, and Lucide React icons. Strictly adhere to the visual design specifications and visual references (`ui ref ins.png` and `ui ref.png`), providing a minimal, modern, premium orange-accented UI/UX with full Light & Dark mode support, persistent theme selection (`easykart_theme`), JWT authentication lifecycle, catalog search/filter/sort/pagination, product detail image gallery and variant selection, user profile management, shipping address CRUD, and strict Phase 6+ boundaries.
+
+**Changes Made:**
+- `frontend/tailwind.config.js`:
+  - Configured `darkMode: 'class'`, Inter font family, and EasyKart orange accent palette (`#F56A00`).
+- `frontend/index.html`:
+  - Imported Google Font Inter (`wght@300;400;500;600;700`) and set application shell attributes.
+- `frontend/src/index.css`:
+  - Configured Tailwind directives, global base styles, and custom scrollbar styles.
+- `frontend/src/api/axios.js`:
+  - Implemented centralized Axios instance with JWT request interceptor and queued automatic token refresh handling on 401 Unauthorized errors (`POST /api/accounts/token/refresh/`).
+- `frontend/src/api/authApi.js`:
+  - Implemented API services for login, registration, user profile, password change, address CRUD, and default address selection.
+- `frontend/src/api/productApi.js`:
+  - Implemented API services for categories, brands, products catalog list, and product details.
+- `frontend/src/context/ThemeContext.jsx`:
+  - Implemented light/dark theme provider with `localStorage` persistence (`easykart_theme`) and HTML `dark` class toggling.
+- `frontend/src/context/ToastContext.jsx`:
+  - Implemented global top-right toast notification system for success, error, and informational notifications.
+- `frontend/src/context/AuthContext.jsx`:
+  - Implemented user state management, JWT token storage, login, registration, logout, and profile update context.
+- `frontend/src/components/layout/Navbar.jsx` & `Footer.jsx`:
+  - Created responsive desktop and mobile navigation drawer with EasyKart orange branding, compact search bar, theme toggle (Sun/Moon), profile dropdown, and non-functional visual placeholders for Cart and Wishlist (triggering Phase 6 toast notification on click).
+- `frontend/src/components/products/ProductCard.jsx`, `ProductGrid.jsx`, `ProductGallery.jsx`, `VariantSelector.jsx`:
+  - Built product UI components matching the reference images, displaying real backend product data, primary images, variant options (size/color), and live stock availability badges.
+- `frontend/src/components/common/SidebarFilter.jsx`, `Pagination.jsx`, `ProtectedRoute.jsx`, `LoadingSkeleton.jsx`:
+  - Built left filter sidebar (Search, Category checkboxes, Brand checkboxes, Min/Max price inputs, Clear filters), pagination controls, route auth guard, and skeleton loaders.
+- `frontend/src/pages/HomePage.jsx`:
+  - Built homepage featuring `ASTRO WINTER ARMOR II` style Hero section with orange CTA buttons, Service guarantee cards (`Free Delivery`, `Secure Payment`, `24/7 Support`), Category showcase, and Featured Products grid.
+- `frontend/src/pages/ProductListPage.jsx`:
+  - Built full catalog browsing page with desktop filter sidebar, sorting dropdown (`Newest`, `Name`, `Price: Low to High`, `Price: High to Low`), mobile filter drawer, and page pagination.
+- `frontend/src/pages/ProductDetailPage.jsx`:
+  - Built product detail view with image gallery, thumbnails, pricing, description, variant selector, stock status badge, and non-functional Phase 6 placeholder buttons ("Add to Cart", "Add to Wishlist") displaying informative toast notifications.
+- `frontend/src/pages/LoginPage.jsx`, `RegisterPage.jsx`, `ProfilePage.jsx`, `AddressPage.jsx`:
+  - Built user authentication and account management pages for profile updates, password change, address CRUD, and setting default delivery address.
+- `frontend/src/App.jsx`:
+  - Configured SPA routes and context wrappers (`ThemeProvider`, `ToastProvider`, `AuthProvider`).
+
+**App Isolation & Backend Protection:**
+- `backend/` directory was NOT modified (0 backend files changed).
+- No database migrations or schema alterations were performed.
+- Existing Phase 1–4 functionality remains 100% preserved.
+
+**Verification & Test Results:**
+- `npm run build` (in `frontend/`) — Result: `✓ built in 22.90s` (0 errors).
+- `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
+- `python backend/manage.py test accounts` — Result: `Ran 13 tests... OK (100% pass rate).`
+- `python backend/manage.py test products` — Result: `Ran 13 tests... OK (100% pass rate).`
+- `python backend/manage.py makemigrations --check --dry-run` — Result: `No changes detected.`
+- `git status backend/` — Result: `nothing to commit, working tree clean`.
