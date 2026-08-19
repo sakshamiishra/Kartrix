@@ -3,7 +3,7 @@ import api from './axios';
 export const wishlistApi = {
   // List user's wishlist items
   getWishlist: async () => {
-    const response = await api.get('/api/wishlist/items/');
+    const response = await api.get(`/api/wishlist/items/?_t=${Date.now()}`);
     return response.data;
   },
 

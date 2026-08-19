@@ -23,6 +23,7 @@ class Order(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='orders', db_index=True)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
+    shipping_address_snapshot = models.JSONField(blank=True, null=True, help_text="Historical snapshot of shipping address at order placement.")
     order_number = models.CharField(max_length=50, unique=True, db_index=True)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

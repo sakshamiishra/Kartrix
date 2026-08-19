@@ -3,7 +3,7 @@ import api from './axios';
 export const cartApi = {
   // Get current user's cart
   getCart: async () => {
-    const response = await api.get('/api/cart/');
+    const response = await api.get(`/api/cart/?_t=${Date.now()}`);
     return response.data;
   },
 

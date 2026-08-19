@@ -19,6 +19,9 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AddressPage } from './pages/AddressPage';
 import { CartPage } from './pages/CartPage';
 import { WishlistPage } from './pages/WishlistPage';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { OrderHistoryPage } from './pages/OrderHistoryPage';
+import { OrderDetailPage } from './pages/OrderDetailPage';
 
 export function App() {
   return (
@@ -46,6 +49,30 @@ export function App() {
                         element={
                           <ProtectedRoute>
                             <CartPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/checkout"
+                        element={
+                          <ProtectedRoute>
+                            <CheckoutPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/orders"
+                        element={
+                          <ProtectedRoute>
+                            <OrderHistoryPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/orders/:orderNumber"
+                        element={
+                          <ProtectedRoute>
+                            <OrderDetailPage />
                           </ProtectedRoute>
                         }
                       />

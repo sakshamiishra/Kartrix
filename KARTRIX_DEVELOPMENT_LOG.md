@@ -19,10 +19,10 @@
 
 ## Current Status
 
-- Current Phase: Phase 6 — Cart + Wishlist
+- Current Phase: Phase 7 — Orders + Checkout
 - Phase Status: COMPLETE
-- Last Completed Task: Phase 6 — Cart + Wishlist Implementation & Verification
-- Next Planned Task: Phase 7 — Orders + Checkout
+- Last Completed Task: Phase 7 — Orders + Checkout Implementation & Verification
+- Next Planned Task: Phase 8 — Razorpay + COD Payment Integration
 
 ## Phase Progress
 
@@ -34,7 +34,7 @@
 | 4 | Products + Categories | COMPLETE |
 | 5 | Customer Frontend | COMPLETE |
 | 6 | Cart + Wishlist | COMPLETE |
-| 7 | Orders + Checkout | NOT STARTED |
+| 7 | Orders + Checkout | COMPLETE |
 | 8 | Razorpay + COD Payment Integration | NOT STARTED |
 | 9 | Reviews System | NOT STARTED |
 | 10 | Admin Panel | NOT STARTED |
@@ -391,3 +391,172 @@ Implement complete customer-facing Shopping Cart and Wishlist functionality stri
 
 **Demo Catalog Currency Standardization Note:**
 The development catalog seed command (`seed_demo_data`) and customer frontend presentation layer were standardized from USD-style demo pricing to realistic Indian e-commerce INR (₹) pricing (`1295.00` to `449900.00`). All numeric database values are stored as plain INR decimals without schema or model changes.
+
+---
+
+### 2026-08-19 — Phase 7: Orders + Checkout
+
+**Phase:**
+Phase 7 — Orders + Checkout
+
+**Objective:**
+Implement complete customer checkout and order management functionality strictly as specified in `Kartrix_Architecture_Blueprint.md` and approved Phase 7 implementation plan. Build atomic Cart-to-Order conversion API (`POST /api/orders/checkout/`), address snapshotting (`shipping_address_snapshot`), price snapshotting (`OrderItem.unit_price`), customer order listing (`GET /api/orders/`), and order detail viewing (`GET /api/orders/{order_number}/`). Build frontend Checkout Page (`/checkout`), Order History Page (`/orders`), Order Detail Page (`/orders/:orderNumber`), and connect CartSummary and Navbar dropdown links.
+
+**Changes Made:**
+- `backend/orders/models.py`:
+  - Added `shipping_address_snapshot = models.JSONField(blank=True, null=True)` to `Order` model to capture immutable historical delivery addresses at order placement time.
+- Created `orders/migrations/0002_order_shipping_address_snapshot.py`:
+  - Single targeted schema migration adding `shipping_address_snapshot` field.
+- `backend/orders/serializers.py`:
+  - Created `OrderItemSerializer`, `OrderStatusHistorySerializer`, `OrderSerializer`, and `CheckoutSerializer`.
+- `backend/orders/views.py`:
+  - Implemented `CheckoutViewSet` (`POST /api/orders/checkout/`) using `db.transaction.atomic()` with stock checking, product/variant activity verification, human-readable order number generation (`EK-YYYYMMDD-HEX`), price/address snapshotting, and cart clearing.
+  - Implemented `OrderViewSet` (`GET /api/orders/`, `GET /api/orders/{order_number}/`) scoped strictly to `request.user`.
+- `backend/orders/urls.py` & `easykart/urls.py`:
+  - Mapped order router endpoints under `/api/orders/`.
+- `backend/orders/tests.py`:
+  - Implemented 10 comprehensive unit tests covering checkout order creation, empty cart rejection, unauthenticated rejection, invalid address rejection, insufficient stock rejection, inactive product rejection, price snapshot integrity, address snapshot integrity, order list user isolation, and order detail user isolation.
+- `frontend/src/api/orderApi.js`:
+  - Created API wrapper module for checkout, order history listing, and order detail retrieval.
+- `frontend/src/pages/CheckoutPage.jsx`, `OrderHistoryPage.jsx`, `OrderDetailPage.jsx`:
+  - Built responsive Checkout, Order History, and Order Detail pages with INR formatting (`₹`), address selection, item breakdowns, payment status indicators, and status timeline tracking.
+- `frontend/src/components/cart/CartSummary.jsx`, `Navbar.jsx`, `App.jsx`:
+  - Connected "Proceed to Checkout" button to navigate to `/checkout`, added "My Orders" link to profile dropdown menu, and registered protected SPA routes.
+
+**Phase Boundary Protections:**
+- Payment gateway integration (Razorpay), webhook verification, and COD collection workflows remain 100% out of scope and locked to Phase 8.
+- Reviews (Phase 9), Admin Panel (Phase 10), Recommendations (Phase 11), and AI/ML (Phase 12) remain un-implemented and locked.
+- Coupons logic was not added to checkout, keeping checkout focused strictly on Cart → Order conversion.
+- Currency is strictly INR (`₹`) without multi-currency or exchange rate APIs.
+
+**Verification & Test Results:**
+- `python backend/manage.py check` — Result: `System check identified no issues (0 silenced).`
+- `python backend/manage.py makemigrations --check --dry-run` — Result: `No changes detected.`
+- `python backend/manage.py test accounts products cart wishlist orders` — Result: `Ran 48 tests... OK (100% pass rate).`
+- `npm run build` (in `frontend/`) — Result: `✓ built in 14.10s` (1954 modules transformed, 0 errors).
+
+---
+
+### 2026-08-19 — Cart & Wishlist Frontend Synchronization, CORS, Toast Error Handling, and Cart Stock Validation Fix
+
+**Phase:**
+Phase 6 — Cart + Wishlist (Frontend Synchronization & Error Handling Refinement)
+
+**Objective:**
+Perform deep diagnostic analysis and resolution of customer Cart and Wishlist frontend state synchronization, CORS preflight header errors, toast notification function exceptions, and DRF stock validation handling.
+
+#### 1. Problem Reported
+- Unauthenticated users interacting with "Add to Cart" or "Wishlist" buttons required proper authentication redirects to `/login`.
+- Cart and Wishlist UI failed to synchronize correctly with backend state.
+- Cart page rendered "Your Shopping Cart is Empty" (cart badge = 0) even though backend database contained existing cart items.
+- "Add to Cart" for the visible Nike Tech Fleece Hoodie variant failed with an error.
+- Wishlist interaction appeared inconsistent and stale.
+- Browser console displayed: `Uncaught TypeError: addToast is not a function at CartContext.jsx:63`.
+- Django server logs recorded: `POST /api/cart/items/ -> 400 Bad Request`.
+- Django server logs recorded: `POST /api/wishlist/toggle/ -> 200 OK`.
+- *Note:* An initial diagnostic hypothesis incorrectly suspected that the selected product variant had zero stock. This was disproved through direct browser, network, and database verification.
+
+#### 2. Environment & Request Flow
+- **Frontend:** React / Vite SPA (`http://localhost:5173`)
+- **Backend:** Django REST Framework API (`http://localhost:8000`)
+- **Cart Request Flow:**
+  `ProductDetailPage` / `ProductCard` $\rightarrow$ `CartContext.addToCart()` $\rightarrow$ `cartApi.addToCart()` $\rightarrow$ `POST /api/cart/items/` $\rightarrow$ Django `CartItemViewSet` / `CartItemSerializer` $\rightarrow$ PostgreSQL database.
+- **Wishlist Request Flow:**
+  `ProductDetailPage` / `ProductCard` $\rightarrow$ `WishlistContext.toggleWishlist()` $\rightarrow$ `wishlistApi.toggleWishlist()` $\rightarrow$ `POST /api/wishlist/toggle/` $\rightarrow$ Django `WishlistItemViewSet` $\rightarrow$ PostgreSQL database $\rightarrow$ `GET /api/wishlist/items/` $\rightarrow$ `WishlistContext` state $\rightarrow$ Customer UI.
+
+#### 3. Browser Network Diagnostic
+Chrome DevTools Network inspection was performed to examine the exact request payload for the Nike Tech Fleece Full-Zip Hoodie variant:
+- **Product ID:** 14
+- **Variant ID:** 29
+- **SKU:** `NTF-GY-M`
+- **Frontend Stock Display:** `"In Stock (25 available)"`
+- **Actual POST Payload:** `{"product": 14, "product_variant": 29, "quantity": 1}`
+- **Backend Response:** HTTP 400 Bad Request
+- **Exact Error Payload:**
+  ```json
+  {
+    "quantity": [
+      "Cannot add. Total quantity (26) exceeds available stock (25)."
+    ]
+  }
+  ```
+This empirical trace proved conclusively that the frontend was sending a valid product/variant selection and that the variant was not out of stock in isolation.
+
+#### 4. Database Verification
+A strict read-only Django database audit was conducted to check user and cart records:
+- **Authenticated User:** User ID `2` (`nishanthihai2@gmail.com`)
+- **Cart Record:** Cart ID `1` (belongs to User ID `2`)
+- **Existing Cart Items:**
+  - `CartItem` ID `2`: `product_id = 14`, `product_variant_id = 29`, `quantity = 25`
+  - `CartItem` ID `3`: `product_id = 14`, `product_variant_id = 30`, `quantity = 1`
+  - `CartItem` ID `4`: `product_id = 14`, `product_variant_id = 31`, `quantity = 1`
+- **Variant Inventory:** `ProductVariant` ID `29` (`NTF-GY-M`), `available_stock = 25`
+- **Calculation:** `Existing quantity (25) + New requested quantity (1) = 26`, which exceeds `available_stock (25)`.
+- **Conclusion:** Django's `CartItemViewSet` correctly rejected the request with HTTP 400. Backend stock validation functioned perfectly, the database was not corrupted, no database records needed to be changed, and the user's cart was not empty.
+
+#### 5. Root Cause #1 — CORS / Cache-Control Request Headers
+`cartApi.getCart()` and `wishlistApi.getWishlist()` were passing custom headers: `headers: { 'Cache-Control': 'no-cache, no-store' }`. Because the frontend (`http://localhost:5173`) and backend (`http://localhost:8000`) occupy different origins, Chrome issued a CORS `OPTIONS` preflight request containing `Access-Control-Request-Headers: cache-control`. Django's `django-cors-headers` middleware uses a default allowed headers list that excludes `cache-control`. Consequently:
+- Chrome blocked `GET /api/cart/` and `GET /api/wishlist/items/` due to CORS preflight failure.
+- `fetchCart()` and `fetchWishlist()` failed to retrieve backend state.
+- `CartContext` cart state remained `null`, causing the frontend to render "Your Shopping Cart is Empty" (cart badge = 0).
+
+#### 6. Root Cause #2 — Cart Stock Limit Enforcement
+The HTTP 400 response on `POST /api/cart/items/` was legitimate. The authenticated user already had the maximum available stock (25 units) of variant `NTF-GY-M` in their cart. Adding 1 more unit would result in a total quantity of 26. Django correctly enforced stock limits. The correct user-facing interpretation is: *"25 units of this variant are already in your cart, so another unit cannot be added because available stock is 25."*
+
+#### 7. Root Cause #3 — Toast Function Name Mismatch
+`ToastContext.jsx` exports `<ToastContext.Provider value={{ showToast }}>`, but `CartContext.jsx` and `WishlistContext.jsx` destructured `const { addToast } = useToast()`. This left `addToast === undefined`. When POST `/api/cart/items/` returned HTTP 400, line 63 attempted to execute `addToast(...)`, throwing `Uncaught TypeError: addToast is not a function` and masking the real backend validation error. Updating the hook to destructure `showToast` and extracting DRF error arrays (`err.response?.data?.quantity[0]`) allows stock validation messages to display clearly as error toasts.
+
+#### 8. Wishlist Synchronization Issue
+`POST /api/wishlist/toggle/` functioned correctly on the backend (returning HTTP 200 OK and toggling database records). The synchronization issue was frontend-bound: `WishlistContext` relied solely on asynchronous GET re-fetching (`fetchWishlist()`), which was failing due to the CORS `Cache-Control` preflight issue. The fix immediately updates local `wishlistItems` state using the returned `res.in_wishlist` boolean before triggering the server sync GET request.
+
+#### 9. Unauthenticated User Authentication Redirects
+Handling for unauthenticated users interacting with Cart and Wishlist was preserved and hardened:
+- Clicking "Add to Cart" or "Wishlist" while unauthenticated displays an informative toast notification (*"Please sign in..."*) and redirects to `/login`.
+- Product ID extraction in `CartContext` was hardened to handle both product objects and primitive product IDs cleanly.
+
+#### 10. Final Files Modified
+Only four frontend files were modified:
+- [`frontend/src/api/cartApi.js`](file:///e:/checkit/Easykart/frontend/src/api/cartApi.js): Removed custom `Cache-Control` header from `getCart()` and appended cache-busting timestamp parameter `?_t=${Date.now()}`.
+- [`frontend/src/api/wishlistApi.js`](file:///e:/checkit/Easykart/frontend/src/api/wishlistApi.js): Removed custom `Cache-Control` header from `getWishlist()` and appended cache-busting timestamp parameter `?_t=${Date.now()}`.
+- [`frontend/src/context/CartContext.jsx`](file:///e:/checkit/Easykart/frontend/src/context/CartContext.jsx): Changed `addToast` to `showToast`, updated all toast calls, and improved DRF error payload extraction.
+- [`frontend/src/context/WishlistContext.jsx`](file:///e:/checkit/Easykart/frontend/src/context/WishlistContext.jsx): Changed `addToast` to `showToast`, updated all toast calls, and added immediate local state update using `in_wishlist` response prior to server synchronization.
+
+#### 11. Scope Boundaries Preserved (What Was NOT Modified)
+- **Zero** Django backend source files modified.
+- **Zero** Django models, serializers, views, permissions, or URLs modified.
+- **Zero** database migrations created.
+- **Zero** PostgreSQL database records modified or deleted (existing cart items and inventory stock remained 100% intact).
+- **Zero** payment processing, Razorpay, COD, or Phase 8 files modified.
+
+#### 12. Verification & Testing
+- **Frontend Production Build:** `npm run build` (in `frontend/`)
+  - Result: `SUCCESS (Exit Code 0)` — 1954 modules transformed, built in 19.53s.
+- **Backend Tests:** `.\env\Scripts\python backend/manage.py test cart wishlist`
+  - Result: `Ran 12 tests in 66.950s ... OK (Exit Code 0, 100% pass rate)`.
+
+#### 13. Final Outcome
+- Cart correctly fetches and renders existing backend cart items without false "empty cart" screens.
+- Wishlist state synchronizes instantly across heart toggles and pages without browser refreshes.
+- Cart stock limit validation errors surface cleanly to the user via toast notifications.
+- CORS preflight errors caused by `Cache-Control` headers are completely eliminated.
+- `addToast is not a function` console error is resolved.
+- Backend stock validation and database integrity remain 100% intact.
+
+#### 14. Future Debugging Guidelines
+> [!IMPORTANT]
+> **Troubleshooting Rule:** When frontend UI displays an empty cart/wishlist or appears out of sync, do NOT immediately modify database records or assume backend code is broken. First inspect Chrome DevTools Network for GET requests, check CORS/preflight `OPTIONS` responses, inspect custom headers, and compare API response data with database records. For cart stock errors, calculate `existing CartItem quantity + requested quantity` against `ProductVariant.inventory.available_stock`. Note that a product page displaying *"25 available"* does not mean the user can add another unit if they already have all 25 units in their cart. Always verify exported function names on React Context providers (e.g., `showToast` vs `addToast`) before diagnosing error handling.
+
+#### 15. Incident Timeline
+1. Authentication redirect requirement for unauthenticated Cart/Wishlist actions identified.
+2. Initial targeted frontend authentication handling added.
+3. Cart "Add to Cart" continued returning HTTP 400 for Nike Tech Fleece variant `NTF-GY-M`.
+4. Chrome DevTools Network inspection performed; confirmed payload `product: 14, variant: 29, qty: 1` and backend error response `Total quantity (26) exceeds available stock (25)`.
+5. Read-only database audit executed; confirmed User 2 already held 25 units of variant 29 in Cart 1.
+6. Secondary CORS issue discovered on `GET /api/cart/` and `GET /api/wishlist/items/` caused by custom `Cache-Control` request headers.
+7. `addToast is not a function` identified in `CartContext.jsx:63` error handler.
+8. Targeted frontend-only fix applied across `cartApi.js`, `wishlistApi.js`, `CartContext.jsx`, and `WishlistContext.jsx`.
+9. Frontend production build (`npm run build`) passed cleanly.
+10. Backend test suite (`python backend/manage.py test cart wishlist`) passed 12/12 tests cleanly.
+11. Full end-to-end browser verification completed successfully.
+
+

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
-import { ShoppingBag, Heart, Search, User, Sun, Moon, Menu, X, LogOut } from 'lucide-react';
+import { ShoppingBag, Heart, Search, User, Sun, Moon, Menu, X, LogOut, Package, MapPin } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -147,11 +147,20 @@ export const Navbar = () => {
                     </Link>
 
                     <Link
+                      to="/orders"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      <Package className="w-4 h-4" />
+                      <span>My Orders</span>
+                    </Link>
+
+                    <Link
                       to="/addresses"
                       onClick={() => setUserDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      <ShoppingBag className="w-4 h-4" />
+                      <MapPin className="w-4 h-4" />
                       <span>My Addresses</span>
                     </Link>
 

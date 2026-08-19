@@ -7,7 +7,7 @@ const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  const { addToast } = useToast();
+  const { showToast } = useToast();
 
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -34,24 +34,33 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = async (product, variantId = null, quantity = 1) => {
     if (!isAuthenticated) {
-      addToast('Please sign in to add items to your cart.', 'info');
+      showToast('Please sign in to add items to your cart.', 'info');
+      window.location.href = '/login';
       return false;
     }
     try {
+      const productId = typeof product === 'object' ? product?.id : product;
+      const productName = typeof product === 'object' ? product?.name : 'Product';
+
+      if (!productId) {
+        showToast('Invalid product selected.', 'error');
+        return false;
+      }
+
       const payload = {
-        product: product.id,
+        product: productId,
         quantity,
       };
       if (variantId) {
         payload.product_variant = variantId;
       }
       await cartApi.addToCart(payload);
-      addToast(`Added "${product.name}" to your cart.`, 'success');
+      showToast(`Added "${productName}" to your cart.`, 'success');
       await fetchCart();
       return true;
     } catch (err) {
       const msg = err.response?.data?.quantity || err.response?.data?.product || err.response?.data?.detail || 'Failed to add item to cart.';
-      addToast(Array.isArray(msg) ? msg[0] : msg, 'error');
+      showToast(Array.isArray(msg) ? msg[0] : msg, 'error');
       return false;
     }
   };
@@ -66,7 +75,7 @@ export const CartProvider = ({ children }) => {
       return true;
     } catch (err) {
       const msg = err.response?.data?.quantity || 'Failed to update quantity.';
-      addToast(Array.isArray(msg) ? msg[0] : msg, 'error');
+      showToast(Array.isArray(msg) ? msg[0] : msg, 'error');
       return false;
     }
   };
@@ -74,11 +83,11 @@ export const CartProvider = ({ children }) => {
   const removeFromCart = async (itemId) => {
     try {
       await cartApi.removeCartItem(itemId);
-      addToast('Item removed from cart.', 'info');
+      showToast('Item removed from cart.', 'info');
       await fetchCart();
       return true;
     } catch (err) {
-      addToast('Failed to remove item.', 'error');
+      showToast('Failed to remove item.', 'error');
       return false;
     }
   };
@@ -86,11 +95,11 @@ export const CartProvider = ({ children }) => {
   const clearCart = async () => {
     try {
       await cartApi.clearCart();
-      addToast('Cart cleared.', 'info');
+      showToast('Cart cleared.', 'info');
       await fetchCart();
       return true;
     } catch (err) {
-      addToast('Failed to clear cart.', 'error');
+      showToast('Failed to clear cart.', 'error');
       return false;
     }
   };

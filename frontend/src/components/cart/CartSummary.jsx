@@ -1,12 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router';
 import { ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
-import { useToast } from '../../context/ToastContext';
 
 export const CartSummary = ({ subtotal, itemCount, onClear }) => {
-  const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const handleCheckoutClick = () => {
-    addToast('Checkout features will unlock in Phase 7.', 'info');
+    navigate('/checkout');
   };
 
   const formattedSubtotal = parseFloat(subtotal || 0).toLocaleString('en-IN');
@@ -43,9 +43,10 @@ export const CartSummary = ({ subtotal, itemCount, onClear }) => {
       <div className="space-y-3 pt-2">
         <button
           onClick={handleCheckoutClick}
-          className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-sm rounded-xl shadow-lg shadow-orange-600/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+          disabled={itemCount === 0}
+          className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl shadow-lg shadow-orange-600/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
         >
-          <span>Proceed to Checkout (Phase 7)</span>
+          <span>Proceed to Checkout</span>
           <ArrowRight className="w-4 h-4" />
         </button>
 

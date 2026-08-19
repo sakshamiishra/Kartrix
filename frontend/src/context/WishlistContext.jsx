@@ -7,7 +7,7 @@ const WishlistContext = createContext();
 
 export const WishlistProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  const { addToast } = useToast();
+  const { showToast } = useToast();
 
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,7 +40,8 @@ export const WishlistProvider = ({ children }) => {
 
   const toggleWishlist = async (product) => {
     if (!isAuthenticated) {
-      addToast('Please sign in to save items to your wishlist.', 'info');
+      showToast('Please sign in to save items to your wishlist.', 'info');
+      window.location.href = '/login';
       return false;
     }
     const productId = typeof product === 'object' ? product.id : product;
@@ -49,14 +50,20 @@ export const WishlistProvider = ({ children }) => {
     try {
       const res = await wishlistApi.toggleWishlist(productId);
       if (res.in_wishlist) {
-        addToast(`Saved "${productName}" to wishlist.`, 'success');
+        setWishlistItems((prev) => {
+          const exists = prev.some((item) => (item.product?.id || item.product) === productId);
+          if (exists) return prev;
+          return [...prev, { id: res.id || Date.now(), product: typeof product === 'object' ? product : { id: productId } }];
+        });
+        showToast(`Saved "${productName}" to wishlist.`, 'success');
       } else {
-        addToast(`Removed "${productName}" from wishlist.`, 'info');
+        setWishlistItems((prev) => prev.filter((item) => (item.product?.id || item.product) !== productId));
+        showToast(`Removed "${productName}" from wishlist.`, 'info');
       }
       await fetchWishlist();
       return res.in_wishlist;
     } catch (err) {
-      addToast('Failed to update wishlist.', 'error');
+      showToast('Failed to update wishlist.', 'error');
       return false;
     }
   };
@@ -64,11 +71,12 @@ export const WishlistProvider = ({ children }) => {
   const removeFromWishlist = async (itemId) => {
     try {
       await wishlistApi.removeWishlistItem(itemId);
-      addToast('Removed item from wishlist.', 'info');
+      setWishlistItems((prev) => prev.filter((item) => item.id !== itemId));
+      showToast('Removed item from wishlist.', 'info');
       await fetchWishlist();
       return true;
     } catch (err) {
-      addToast('Failed to remove item.', 'error');
+      showToast('Failed to remove item.', 'error');
       return false;
     }
   };
