@@ -27,14 +27,21 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel(self, request, order_number=None):
-        order = self.get_object()
-
-        if order.status not in [Order.OrderStatus.PLACED, Order.OrderStatus.CONFIRMED]:
-            raise ValidationError({
-                "detail": f"Order #{order.order_number} cannot be cancelled because it is in '{order.get_status_display()}' status."
-            })
-
         with transaction.atomic():
+            try:
+                order = Order.objects.select_for_update().get(
+                    order_number=order_number,
+                    user=request.user
+                )
+            except Order.DoesNotExist:
+                from rest_framework.exceptions import NotFound
+                raise NotFound("No Order matches the given query.")
+
+            if order.status not in [Order.OrderStatus.PLACED, Order.OrderStatus.CONFIRMED]:
+                raise ValidationError({
+                    "detail": f"Order #{order.order_number} cannot be cancelled because it is in '{order.get_status_display()}' status."
+                })
+
             order.status = Order.OrderStatus.CANCELLED
             order.save(update_fields=['status', 'updated_at'])
 
@@ -73,8 +80,9 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
                             created_by=request.user,
                         )
 
-        serializer = self.get_serializer(order)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer = self.get_serializer(order)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class CheckoutViewSet(viewsets.ViewSet):
