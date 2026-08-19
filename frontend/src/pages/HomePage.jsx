@@ -60,7 +60,7 @@ export const HomePage = () => {
 
                 {heroProduct.starting_price && (
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ${parseFloat(heroProduct.starting_price).toFixed(2)}
+                    ₹{parseFloat(heroProduct.starting_price).toLocaleString('en-IN')}
                   </p>
                 )}
 
@@ -146,7 +146,7 @@ export const HomePage = () => {
           </div>
           <div>
             <h4 className="text-sm font-bold text-gray-900 dark:text-white">Free Delivery</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">On orders over $100</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">On orders over ₹1,000</p>
           </div>
         </div>
 

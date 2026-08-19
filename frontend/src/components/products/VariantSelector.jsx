@@ -60,7 +60,7 @@ export const VariantSelector = ({ variants = [], onVariantChange }) => {
                 {isSelected && <Check className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />}
                 <span>{variant.sku || `Variant ${variant.id}`}</span>
                 {variant.price && (
-                  <span className="text-[11px] font-normal opacity-80">${parseFloat(variant.price).toFixed(2)}</span>
+                  <span className="text-[11px] font-normal opacity-80">₹{parseFloat(variant.price).toLocaleString('en-IN')}</span>
                 )}
               </button>
             );

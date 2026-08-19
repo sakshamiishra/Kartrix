@@ -104,11 +104,11 @@ export const ProductDetailPage = () => {
           {/* Pricing */}
           <div className="flex items-baseline gap-3 border-y border-gray-100 dark:border-[#2A2D32] py-4">
             <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
-              ${parseFloat(currentPrice).toFixed(2)}
+              ₹{parseFloat(currentPrice).toLocaleString('en-IN')}
             </span>
             {selectedVariant?.discount_price && selectedVariant?.price && (
               <span className="text-base text-gray-400 line-through">
-                ${parseFloat(selectedVariant.price).toFixed(2)}
+                ₹{parseFloat(selectedVariant.price).toLocaleString('en-IN')}
               </span>
             )}
           </div>

@@ -9,7 +9,7 @@ export const CartSummary = ({ subtotal, itemCount, onClear }) => {
     addToast('Checkout features will unlock in Phase 7.', 'info');
   };
 
-  const formattedSubtotal = parseFloat(subtotal || 0).toFixed(2);
+  const formattedSubtotal = parseFloat(subtotal || 0).toLocaleString('en-IN');
 
   return (
     <div className="bg-white dark:bg-[#17191B] rounded-3xl border border-gray-100 dark:border-[#2A2D32] p-6 space-y-6 shadow-sm sticky top-24">
@@ -21,7 +21,7 @@ export const CartSummary = ({ subtotal, itemCount, onClear }) => {
       <div className="space-y-3 border-t border-b border-gray-100 dark:border-[#2A2D32] py-4 text-sm">
         <div className="flex justify-between text-gray-600 dark:text-gray-400">
           <span>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
-          <span className="font-semibold text-gray-900 dark:text-white">${formattedSubtotal}</span>
+          <span className="font-semibold text-gray-900 dark:text-white">₹{formattedSubtotal}</span>
         </div>
         
         <div className="flex justify-between text-gray-600 dark:text-gray-400">
@@ -37,7 +37,7 @@ export const CartSummary = ({ subtotal, itemCount, onClear }) => {
 
       <div className="flex justify-between items-center text-base font-extrabold text-gray-900 dark:text-white">
         <span>Total Estimate</span>
-        <span className="text-xl text-orange-600 dark:text-orange-400">${formattedSubtotal}</span>
+        <span className="text-xl text-orange-600 dark:text-orange-400">₹{formattedSubtotal}</span>
       </div>
 
       <div className="space-y-3 pt-2">

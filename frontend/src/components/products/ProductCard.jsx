@@ -26,8 +26,8 @@ export const ProductCard = ({ product }) => {
   };
 
   const displayPrice = product.starting_price 
-    ? `$${parseFloat(product.starting_price).toFixed(2)}`
-    : '$0.00';
+    ? `₹${parseFloat(product.starting_price).toLocaleString('en-IN')}`
+    : '₹0';
 
   const categoryName = typeof product.category === 'object' ? product.category?.name : null;
   const brandName = typeof product.brand === 'object' ? product.brand?.name : null;

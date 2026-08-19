@@ -133,19 +133,19 @@ export const SidebarFilter = ({
       {/* Price Range */}
       <div className="space-y-2.5">
         <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-          Price Range ($)
+          Price Range (₹)
         </label>
         <div className="grid grid-cols-2 gap-2">
           <input
             type="number"
-            placeholder="Min ($)"
+            placeholder="Min (₹)"
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-[#17191B] border border-transparent dark:border-[#2A2D32] rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
           />
           <input
             type="number"
-            placeholder="Max ($)"
+            placeholder="Max (₹)"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-gray-100 dark:bg-[#17191B] border border-transparent dark:border-[#2A2D32] rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"

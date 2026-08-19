@@ -7,6 +7,16 @@
 - Django configuration package: easykart
 - Architecture source: Kartrix_Architecture_Blueprint.md
 
+## Project Currency Standard
+
+1. **Sole Base Currency:** EasyKart's sole and base currency is **Indian Rupee (INR / ₹)**.
+2. **Database Storage:** Product and ProductVariant prices are stored as plain numeric INR amounts (e.g., `47999.00`, `12495.00`) directly in the PostgreSQL database. Currency symbols are never stored in text fields.
+3. **Presentation Layer Formatting:** Customer-facing prices are rendered with the `₹` symbol and Indian number formatting (`en-IN`, e.g., `₹47,999`, `₹1,24,900`).
+4. **Admin Panel Standard:** Future Admin Panel product and variant management forms (Phase 10) must accept, validate, and label all price fields in INR (₹).
+5. **Phase Integration Standard:** Cart (Phase 6), Wishlist (Phase 6), Orders (Phase 7), Checkout (Phase 7), and Payments (Phase 8) will process INR amounts directly.
+6. **No Runtime Conversion:** No runtime USD→INR currency conversion or exchange-rate API calls are required or used.
+7. **No Multi-Currency Scope:** Multi-currency support is out of scope unless explicitly introduced in a future phase.
+
 ## Current Status
 
 - Current Phase: Phase 6 — Cart + Wishlist
@@ -378,3 +388,6 @@ Implement complete customer-facing Shopping Cart and Wishlist functionality stri
 - `python backend/manage.py test products` — Result: `Ran 13 tests... OK (100% pass rate).`
 - `python backend/manage.py makemigrations --check --dry-run` — Result: `No changes detected.`
 - `npm run build` (in `frontend/`) — Result: `✓ built in 20.63s` (1950 modules transformed, 0 errors).
+
+**Demo Catalog Currency Standardization Note:**
+The development catalog seed command (`seed_demo_data`) and customer frontend presentation layer were standardized from USD-style demo pricing to realistic Indian e-commerce INR (₹) pricing (`1295.00` to `449900.00`). All numeric database values are stored as plain INR decimals without schema or model changes.

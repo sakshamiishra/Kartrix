@@ -47,7 +47,7 @@ export const CartItemRow = ({ item, onUpdateQuantity, onRemove }) => {
           )}
 
           <p className="text-xs font-semibold text-orange-600 dark:text-orange-400">
-            ${parseFloat(item.unit_price).toFixed(2)} each
+            ₹{parseFloat(item.unit_price).toLocaleString('en-IN')} each
           </p>
         </div>
       </div>
@@ -81,7 +81,7 @@ export const CartItemRow = ({ item, onUpdateQuantity, onRemove }) => {
         {/* Item Subtotal */}
         <div className="text-right">
           <p className="text-base font-extrabold text-gray-900 dark:text-white">
-            ${parseFloat(item.subtotal).toFixed(2)}
+            ₹{parseFloat(item.subtotal).toLocaleString('en-IN')}
           </p>
         </div>
 

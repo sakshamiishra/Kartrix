@@ -1,4 +1,4 @@
-import React from 'react';
+ import React from 'react';
 import { Link } from 'react-router';
 import { Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
@@ -99,7 +99,7 @@ export const WishlistPage = () => {
 
                   {product.starting_price && (
                     <p className="text-sm font-extrabold text-orange-600 dark:text-orange-400">
-                      ${parseFloat(product.starting_price).toFixed(2)}
+                      ₹{parseFloat(product.starting_price).toLocaleString('en-IN')}
                     </p>
                   )}
                 </div>
