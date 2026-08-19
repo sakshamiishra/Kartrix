@@ -10,6 +10,8 @@ from accounts.models import Address
 from orders.models import Order, OrderItem, OrderStatusHistory
 from payments.models import Payment
 
+from products.models import Category, Brand, Product, ProductVariant, Inventory, InventoryTransaction
+
 User = get_user_model()
 
 
@@ -39,6 +41,12 @@ class PaymentAPITestCase(TestCase):
             country='India'
         )
 
+        self.category = Category.objects.create(name='Gadgets', slug='gadgets')
+        self.brand = Brand.objects.create(name='BrandX', slug='brandx')
+        self.product = Product.objects.create(name='Smart Watch', slug='smart-watch', category=self.category, brand=self.brand)
+        self.variant = ProductVariant.objects.create(product=self.product, sku='WATCH-01', price=Decimal('1000.00'))
+        self.inventory = Inventory.objects.create(product_variant=self.variant, quantity=10)
+
         self.order = Order.objects.create(
             user=self.user,
             address=self.address,
@@ -51,6 +59,16 @@ class PaymentAPITestCase(TestCase):
             payment_status=Order.PaymentStatus.PENDING
         )
 
+        OrderItem.objects.create(
+            order=self.order,
+            product=self.product,
+            product_variant=self.variant,
+            product_name=self.product.name,
+            unit_price=Decimal('1000.00'),
+            quantity=2,
+            subtotal=Decimal('2000.00')
+        )
+
         self.payment = Payment.objects.create(
             order=self.order,
             payment_method=Payment.PaymentMethod.RAZORPAY,
@@ -61,6 +79,7 @@ class PaymentAPITestCase(TestCase):
         )
 
         self.client = APIClient()
+
 
     def test_unauthenticated_cannot_create_razorpay_order(self):
         response = self.client.post('/api/payments/create-razorpay-order/', {'order_number': self.order.order_number})
@@ -133,6 +152,15 @@ class PaymentAPITestCase(TestCase):
             self.assertEqual(self.payment.transaction_id, 'pay_mock_999')
             self.assertEqual(self.order.payment_status, Order.PaymentStatus.PAID)
             self.assertEqual(self.order.status, Order.OrderStatus.CONFIRMED)
+
+            # Stock should be deducted and SALE transaction logged
+            self.inventory.refresh_from_db()
+            self.assertEqual(self.inventory.quantity, 8)  # 10 - 2
+            tx = InventoryTransaction.objects.filter(inventory=self.inventory, reference=f"ORDER:{self.order.order_number}").first()
+            self.assertIsNotNone(tx)
+            self.assertEqual(tx.transaction_type, InventoryTransaction.TransactionType.SALE)
+            self.assertEqual(tx.quantity, -2)
+
 
     @patch('payments.views.razorpay.Client')
     def test_verify_payment_invalid_signature(self, mock_razorpay_client):

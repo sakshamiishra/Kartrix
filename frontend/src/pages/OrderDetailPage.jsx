@@ -29,6 +29,9 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
 
   const fetchOrderDetail = async () => {
     try {
@@ -151,6 +154,24 @@ export function OrderDetailPage() {
 
   const isPaid = order.payment_status === 'PAID';
   const isPendingPayment = order.payment_status === 'PENDING';
+  const isRazorpayMethod = (order.payment?.payment_method || 'RAZORPAY') === 'RAZORPAY';
+  const isCancellable = order.status === 'PLACED' || order.status === 'CONFIRMED';
+
+  const handleCancelOrder = async () => {
+
+    setCancelling(true);
+    try {
+      await orderApi.cancelOrder(order.order_number);
+      addToast(`Order #${order.order_number} cancelled successfully.`, 'success');
+      setCancelModalOpen(false);
+      await fetchOrderDetail();
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to cancel order.';
+      addToast(msg, 'error');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
@@ -160,7 +181,9 @@ export function OrderDetailPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Order #{order.order_number}</h1>
             <span className={`px-3 py-1 text-xs font-bold rounded-full border ${
-              isPaid
+              order.status === 'CANCELLED'
+                ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
+                : isPaid
                 ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800'
                 : 'bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
             }`}>
@@ -173,13 +196,24 @@ export function OrderDetailPage() {
           </p>
         </div>
 
-        <Link
-          to="/orders"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>All Orders</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          {isCancellable && (
+            <button
+              onClick={() => setCancelModalOpen(true)}
+              className="px-4 py-2 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-800 rounded-xl transition-all"
+            >
+              Cancel Order
+            </button>
+          )}
+
+          <Link
+            to="/orders"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>All Orders</span>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -220,7 +254,7 @@ export function OrderDetailPage() {
             <div className="flex justify-between text-gray-600 dark:text-gray-400">
               <span>Method</span>
               <span className="font-semibold text-gray-900 dark:text-white">
-                {order.payment?.payment_method || 'Razorpay'}
+                {order.payment?.payment_method === 'COD' ? 'Cash on Delivery (COD)' : 'Razorpay Online'}
               </span>
             </div>
             {order.payment?.transaction_id && (
@@ -245,8 +279,8 @@ export function OrderDetailPage() {
             </div>
           </div>
 
-          {/* Retry Payment Button */}
-          {isPendingPayment && (
+          {/* Retry Payment Button (Razorpay only) */}
+          {isPendingPayment && isRazorpayMethod && order.status !== 'CANCELLED' && (
             <button
               onClick={handleRetryPayment}
               disabled={paying}
@@ -267,6 +301,7 @@ export function OrderDetailPage() {
           )}
         </div>
       </div>
+
 
       {/* Items List */}
       <div className="bg-white dark:bg-[#17191B] rounded-3xl border border-gray-100 dark:border-[#2A2D32] p-6 space-y-4 shadow-sm">
@@ -320,8 +355,44 @@ export function OrderDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Cancel Order Confirmation Modal */}
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#17191B] rounded-3xl border border-gray-100 dark:border-[#2A2D32] p-6 max-w-md w-full space-y-4 shadow-2xl animate-in fade-in zoom-in duration-150">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Cancel Order #{order.order_number}?</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Are you sure you want to cancel this order? Item stock will be restored and this action cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setCancelModalOpen(false)}
+                disabled={cancelling}
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-xl transition-all"
+              >
+                No, Keep Order
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-red-600/20"
+              >
+                {cancelling ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Cancelling...</span>
+                  </>
+                ) : (
+                  <span>Yes, Cancel Order</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 export default OrderDetailPage;

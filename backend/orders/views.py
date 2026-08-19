@@ -14,6 +14,7 @@ from accounts.serializers import AddressSerializer
 from cart.models import Cart
 from cart.serializers import CartItemSerializer
 from payments.models import Payment
+from products.models import Inventory, InventoryTransaction
 
 
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
@@ -23,6 +24,57 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).select_related('payment', 'address').prefetch_related('items', 'status_history').order_by('-created_at')
+
+    @action(detail=True, methods=['post'], url_path='cancel')
+    def cancel(self, request, order_number=None):
+        order = self.get_object()
+
+        if order.status not in [Order.OrderStatus.PLACED, Order.OrderStatus.CONFIRMED]:
+            raise ValidationError({
+                "detail": f"Order #{order.order_number} cannot be cancelled because it is in '{order.get_status_display()}' status."
+            })
+
+        with transaction.atomic():
+            order.status = Order.OrderStatus.CANCELLED
+            order.save(update_fields=['status', 'updated_at'])
+
+            if order.payment_status == Order.PaymentStatus.PAID:
+                history_note = "Order cancelled by customer. Online refund pending manual/admin processing."
+            else:
+                history_note = "Order cancelled by customer."
+
+            OrderStatusHistory.objects.create(
+                order=order,
+                status=Order.OrderStatus.CANCELLED,
+                note=history_note,
+                changed_by=request.user,
+            )
+
+            # Restore stock for each item in the cancelled order
+            for item in order.items.select_related('product_variant', 'product_variant__inventory').all():
+                variant = item.product_variant
+                if variant and hasattr(variant, 'inventory') and variant.inventory:
+                    inv = Inventory.objects.select_for_update().get(id=variant.inventory.id)
+                    cancel_ref = f"CANCEL:{order.order_number}"
+                    already_restocked = InventoryTransaction.objects.filter(
+                        inventory=inv,
+                        reference=cancel_ref
+                    ).exists()
+
+                    if not already_restocked:
+                        inv.quantity += item.quantity
+                        inv.save(update_fields=['quantity', 'updated_at'])
+
+                        InventoryTransaction.objects.create(
+                            inventory=inv,
+                            transaction_type=InventoryTransaction.TransactionType.RESTOCK,
+                            quantity=item.quantity,
+                            reference=cancel_ref,
+                            created_by=request.user,
+                        )
+
+        serializer = self.get_serializer(order)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CheckoutViewSet(viewsets.ViewSet):
@@ -60,7 +112,8 @@ class CheckoutViewSet(viewsets.ViewSet):
                     if not variant.is_active:
                         raise ValidationError({"detail": f"Product variant for '{product.name}' is inactive and cannot be ordered."})
                     if hasattr(variant, 'inventory') and variant.inventory:
-                        available = variant.inventory.available_stock
+                        inv = Inventory.objects.select_for_update().get(id=variant.inventory.id)
+                        available = inv.available_stock
                         if item.quantity > available:
                             raise ValidationError({
                                 "detail": f"Requested quantity ({item.quantity}) for '{product.name}' exceeds available stock ({available})."
@@ -140,13 +193,41 @@ class CheckoutViewSet(viewsets.ViewSet):
             OrderStatusHistory.objects.create(
                 order=order,
                 status=Order.OrderStatus.PLACED,
-                note='Order placed successfully.',
+                note='Order placed successfully via Cash on Delivery.' if payment_method == 'COD' else 'Order placed successfully.',
                 changed_by=request.user,
             )
+
+            # Deduct inventory immediately for COD orders
+            if payment_method == 'COD':
+                for ci in computed_items:
+                    variant = ci['variant']
+                    if variant and hasattr(variant, 'inventory') and variant.inventory:
+                        inv = Inventory.objects.select_for_update().get(id=variant.inventory.id)
+                        sale_ref = f"ORDER:{order.order_number}"
+                        already_deducted = InventoryTransaction.objects.filter(
+                            inventory=inv,
+                            reference=sale_ref,
+                            transaction_type=InventoryTransaction.TransactionType.SALE
+                        ).exists()
+
+                        if not already_deducted:
+                            if inv.available_stock < ci['quantity']:
+                                raise ValidationError({"detail": f"Insufficient stock for '{ci['name']}'."})
+                            inv.quantity -= ci['quantity']
+                            inv.save(update_fields=['quantity', 'updated_at'])
+
+                            InventoryTransaction.objects.create(
+                                inventory=inv,
+                                transaction_type=InventoryTransaction.TransactionType.SALE,
+                                quantity=-ci['quantity'],
+                                reference=sale_ref,
+                                created_by=request.user,
+                            )
 
             # Clear cart items after successful order creation
             cart.items.all().delete()
 
         output_serializer = OrderSerializer(order)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
 

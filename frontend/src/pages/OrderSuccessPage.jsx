@@ -69,7 +69,9 @@ export function OrderSuccessPage() {
             Order Placed Successfully!
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Thank you for shopping with EasyKart. Your payment has been verified and your order is confirmed.
+            {order.payment_status === 'PAID'
+              ? 'Thank you for shopping with EasyKart. Your payment has been verified and your order is confirmed.'
+              : 'Thank you for shopping with EasyKart. Your Cash on Delivery order has been placed successfully.'}
           </p>
         </div>
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 font-mono text-xs font-bold rounded-full border border-green-200 dark:border-green-800/50">
@@ -88,7 +90,9 @@ export function OrderSuccessPage() {
           <div className="text-xs space-y-2.5">
             <div className="flex justify-between text-gray-600 dark:text-gray-400">
               <span>Payment Status</span>
-              <span className="font-bold text-green-600 dark:text-green-400 uppercase flex items-center gap-1">
+              <span className={`font-bold uppercase flex items-center gap-1 ${
+                order.payment_status === 'PAID' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+              }`}>
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>{order.payment_status}</span>
               </span>
@@ -96,7 +100,7 @@ export function OrderSuccessPage() {
             <div className="flex justify-between text-gray-600 dark:text-gray-400">
               <span>Payment Method</span>
               <span className="font-semibold text-gray-900 dark:text-white">
-                {order.payment?.payment_method === 'RAZORPAY' ? 'Razorpay Online' : (order.payment?.payment_method || 'Razorpay')}
+                {order.payment?.payment_method === 'COD' ? 'Cash on Delivery (COD)' : 'Razorpay Online'}
               </span>
             </div>
             <div className="flex justify-between text-gray-600 dark:text-gray-400">
@@ -106,11 +110,12 @@ export function OrderSuccessPage() {
               </span>
             </div>
             <div className="border-t border-gray-100 dark:border-[#2A2D32] pt-2 flex justify-between text-sm font-extrabold text-gray-900 dark:text-white">
-              <span>Amount Paid</span>
+              <span>{order.payment_status === 'PAID' ? 'Amount Paid' : 'Total Amount'}</span>
               <span className="text-orange-600 dark:text-orange-400">₹{formattedTotal}</span>
             </div>
           </div>
         </div>
+
 
         {/* Shipping Address Summary Card */}
         <div className="bg-white dark:bg-[#17191B] rounded-3xl border border-gray-100 dark:border-[#2A2D32] p-6 space-y-4 shadow-sm">

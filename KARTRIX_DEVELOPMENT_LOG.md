@@ -19,10 +19,10 @@
 
 ## Current Status
 
-- Current Phase: Phase 8A — Razorpay Online Payment Integration
+- Current Phase: Phase 8B — COD, Inventory & Order Cancellation
 - Phase Status: COMPLETE
-- Last Completed Task: Phase 8A — Razorpay Online Payment Integration Implementation & Verification
-- Next Planned Task: Phase 8B — Cash on Delivery (COD) & Inventory Stock Deduction
+- Last Completed Task: Phase 8B — COD, Inventory & Order Cancellation Implementation & Verification
+- Next Planned Task: Phase 9 — Reviews System
 
 ## Phase Progress
 
@@ -36,11 +36,12 @@
 | 6 | Cart + Wishlist | COMPLETE |
 | 7 | Orders + Checkout | COMPLETE |
 | 7.5 | Product Discovery & Navigation UX | COMPLETE |
-| 8 | Razorpay + COD Payment Integration | IN PROGRESS (8A Complete) |
+| 8 | Razorpay + COD Payment Integration | COMPLETE |
 | 9 | Reviews System | NOT STARTED |
 | 10 | Admin Panel | NOT STARTED |
 | 11 | Basic Recommendation Engine | NOT STARTED |
 | 12 | Advanced Features / AI/ML | NOT STARTED |
+
 
 
 ## Completed Work & Milestone Log
@@ -775,5 +776,75 @@ Successfully implemented end-to-end Razorpay Test Mode online payment integratio
 - **Django Migrations Check:** `.\env\Scripts\python backend/manage.py makemigrations --check --dry-run` $\rightarrow$ `No changes detected.`
 - **Backend Unit Tests:** `.\env\Scripts\python backend/manage.py test payments orders cart wishlist products` $\rightarrow$ `Ran 42 tests in 185.263s ... OK (100% pass rate).`
 - **Frontend Production Build:** `npm run build` (in `frontend/`) $\rightarrow$ `✓ built in 25.12s` (1960 modules transformed, 0 errors).
+
+---
+
+### 2026-08-19 — Phase 8B — COD, Inventory & Order Cancellation
+
+**Phase:**
+Phase 8B — COD, Inventory & Order Cancellation
+
+**Status:**
+COMPLETE
+
+#### 1. Objective & Scope Accomplished
+Successfully implemented Cash on Delivery (COD) payment processing, server-authoritative inventory stock deduction (`SALE` transaction), database row locking (`select_for_update()`) concurrency protection under atomic transactions, inventory transaction audit logging (`InventoryTransaction`), inventory deduction idempotency (`ORDER:{order_number}` reference checking), customer-facing order cancellation (`POST /api/orders/{order_number}/cancel/`), cancellation inventory restoration (`RESTOCK` transaction), `OrderStatusHistory` status tracking, frontend COD selection, order detail cancellation UI with modal confirmation, and automated test suite expansion without creating database migrations.
+
+#### 2. Cash on Delivery (COD) Implementation
+- **Backend Order Creation:** Updated `CheckoutViewSet.create` in `backend/orders/views.py` so when `payment_method == 'COD'`:
+  - Address and available stock are validated under database lock.
+  - `Order` is created (`status=PLACED`, `payment_status=PENDING`).
+  - `Payment` is created (`payment_method=COD`, `payment_gateway=''`, `status=PENDING`).
+  - Inventory is immediately deducted (`inventory.quantity -= ci['quantity']`).
+  - `InventoryTransaction` is created (`transaction_type=SALE`, `quantity=-ci['quantity']`, `reference=ORDER:{order_number}`).
+  - `OrderStatusHistory` is created (`status=PLACED`, `note='Order placed successfully via Cash on Delivery.'`).
+  - Cart items are cleared.
+- **Frontend Checkout Flow:** Updated `frontend/src/pages/CheckoutPage.jsx` to make the Cash on Delivery selector functional (`onClick={() => setPaymentMethod('COD')}`). Submitting via COD invokes `orderApi.checkout({ address_id, payment_method: 'COD' })`, displays success toast, and navigates directly to `/order-success/:orderNumber`.
+- **Order Success Display:** Updated `frontend/src/pages/OrderSuccessPage.jsx` to render payment method as `Cash on Delivery (COD)`, status as `PENDING`, and hero message as *"Thank you for shopping with EasyKart. Your Cash on Delivery order has been placed successfully."*
+
+#### 3. Inventory Stock Deduction & Concurrency
+- **Server-Authoritative Stock Movement:** Implemented stock deduction during **Razorpay Payment Verification** (`VerifyRazorpayPaymentView`) AND **COD Order Placement** (`CheckoutViewSet`).
+- **Database Row Locking:** Uses `select_for_update()` inside `transaction.atomic()` when querying `Inventory` rows prior to stock movement, eliminating race conditions and negative inventory under concurrent checkout requests.
+- **Audit Logging:** Logs `InventoryTransaction` records with `transaction_type=SALE` and reference format `ORDER:{order_number}`.
+- **Idempotency Protection:** Checks if a `SALE` transaction with `reference=ORDER:{order_number}` already exists for the inventory before deducting stock, preventing duplicate stock deduction on repeated payment verification calls or checkout retries.
+
+#### 4. Customer Order Cancellation
+- **Endpoint Implemented:** `POST /api/orders/{order_number}/cancel/` on `OrderViewSet` (`backend/orders/views.py`).
+- **Authorization & Ownership:** Scoped strictly to authenticated owner (`Order.objects.get(order_number=order_number, user=request.user)`). Non-owners receive HTTP 404 Not Found.
+- **Backend Status Validation:** Cancellation is permitted ONLY for orders in `PLACED` or `CONFIRMED` status. Attempts to cancel orders in `PROCESSING`, `SHIPPED`, `OUT_FOR_DELIVERY`, `DELIVERED`, `CANCELLED`, or `RETURNED` status are rejected with HTTP 400 Bad Request.
+- **Stock Restoration:** On valid cancellation under `transaction.atomic()`:
+  - Updates `Order.status = CANCELLED`.
+  - Restores inventory quantity (`inventory.quantity += item.quantity`) for each item in the order.
+  - Logs `InventoryTransaction` (`transaction_type=RESTOCK`, `quantity=item.quantity`, `reference=CANCEL:{order_number}`).
+  - Logs `OrderStatusHistory` (`status=CANCELLED`, `note='Order cancelled by customer.'`).
+  - Idempotency guard (`CANCEL:{order_number}`) prevents duplicate stock restoration.
+- **Payment Handling:**
+  - For COD orders: `Payment.status` remains `PENDING` (no money was collected; zero fake refunds).
+  - For Razorpay orders: `Payment.status` remains `PAID` with note in `OrderStatusHistory`: *"Order cancelled by customer. Online refund pending manual/admin processing."*
+- **Frontend Cancellation UI:** Updated `frontend/src/pages/OrderDetailPage.jsx` to render a "Cancel Order" button for cancellable orders, a confirmation modal dialog, and immediate UI state update upon successful cancellation. Added `cancelOrder` method to `frontend/src/api/orderApi.js`.
+
+#### 5. Files Created
+- None (All Phase 8B features built cleanly within existing application files).
+
+#### 6. Files Modified
+1. `backend/payments/views.py` (Added stock deduction and `SALE` logging to `VerifyRazorpayPaymentView`)
+2. `backend/orders/views.py` (Added COD stock deduction to `CheckoutViewSet` and `cancel` action to `OrderViewSet`)
+3. `backend/orders/tests.py` (Added 4 unit tests for COD, cancellation, stock restoration, and ownership validation)
+4. `backend/payments/tests.py` (Added inventory fixtures and stock deduction assertions to payment verification tests)
+5. `frontend/src/api/orderApi.js` (Added `cancelOrder` API method)
+6. `frontend/src/pages/CheckoutPage.jsx` (Enabled COD selector & button submit text)
+7. `frontend/src/pages/OrderDetailPage.jsx` (Added "Cancel Order" button & confirmation modal)
+8. `frontend/src/pages/OrderSuccessPage.jsx` (Updated Payment Summary and Hero for COD details)
+9. `KARTRIX_DEVELOPMENT_LOG.md` (Updated status table and milestone entry)
+
+#### 7. Refund & Webhook Boundary
+- **Automated Razorpay Refunds:** Automated Razorpay Gateway Refund API (`client.payment.refund()`) and refund webhooks remain **deferred** to Phase 10 (Admin Panel) / future work. No fake `REFUNDED` statuses or unauthorized gateway refund calls were introduced.
+
+#### 8. Automated Verification Results
+- **Django System Check:** `.\env\Scripts\python backend/manage.py check` $\rightarrow$ `System check identified no issues (0 silenced).`
+- **Django Migrations Check:** `.\env\Scripts\python backend/manage.py makemigrations --check --dry-run` $\rightarrow$ `No changes detected.` (0 schema changes, 0 migrations).
+- **Backend Unit Test Suite:** `.\env\Scripts\python backend/manage.py test payments orders cart wishlist products` $\rightarrow$ `Ran 46 tests in 204.732s ... OK` (100% pass rate).
+- **Frontend Production Build:** `npm run build` (in `frontend/`) $\rightarrow$ `✓ built in 18.15s` (1961 modules transformed, 0 errors).
+
 
 

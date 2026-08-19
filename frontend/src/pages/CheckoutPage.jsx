@@ -318,25 +318,31 @@ export function CheckoutPage() {
                 )}
               </div>
 
-              {/* COD Option (Disabled or Info Badge) */}
+              {/* COD Option */}
               <div
-                className="p-4 rounded-2xl border border-gray-200 dark:border-[#2A2D32] opacity-60 cursor-not-allowed flex items-center justify-between gap-4"
+                onClick={() => setPaymentMethod('COD')}
+                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                  paymentMethod === 'COD'
+                    ? 'border-orange-600 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-500/50 shadow-sm'
+                    : 'border-gray-200 dark:border-[#2A2D32] hover:border-gray-300 dark:hover:border-gray-700'
+                }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-[#0F1011] text-gray-400 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/40 text-orange-600 flex items-center justify-center">
                     <Banknote className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-bold text-sm text-gray-900 dark:text-white">Cash on Delivery (COD)</p>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">
-                        Phase 8B
-                      </span>
                     </div>
-                    <p className="text-xs text-gray-500">Pay cash upon delivery</p>
+                    <p className="text-xs text-gray-500">Pay cash upon physical delivery</p>
                   </div>
                 </div>
-                <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-700" />
+                {paymentMethod === 'COD' ? (
+                  <CheckCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
+                )}
               </div>
             </div>
           </div>
@@ -415,12 +421,17 @@ export function CheckoutPage() {
               {submitting ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Processing Payment...</span>
+                  <span>Processing Order...</span>
                 </>
               ) : (
-                <span>Pay ₹{formattedSubtotal} via Razorpay</span>
+                <span>
+                  {paymentMethod === 'COD'
+                    ? 'Place Order (Cash on Delivery)'
+                    : `Pay ₹${formattedSubtotal} via Razorpay`}
+                </span>
               )}
             </button>
+
 
             <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 justify-center pt-2">
               <ShieldCheck className="w-4 h-4 text-green-500" />

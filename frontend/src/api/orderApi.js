@@ -19,6 +19,13 @@ export const orderApi = {
     const response = await api.get(`/api/orders/${orderNumber}/`);
     return response.data;
   },
+
+  // Cancel order by order_number
+  cancelOrder: async (orderNumber) => {
+    const response = await api.post(`/api/orders/${orderNumber}/cancel/`);
+    return response.data;
+  },
 };
+
 
 export default orderApi;

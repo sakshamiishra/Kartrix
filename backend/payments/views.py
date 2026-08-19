@@ -9,12 +9,14 @@ from rest_framework.exceptions import ValidationError
 import razorpay
 
 from orders.models import Order, OrderStatusHistory
+from products.models import Inventory, InventoryTransaction
 from .models import Payment
 from .serializers import (
     PaymentSerializer,
     CreateRazorpayOrderSerializer,
     VerifyRazorpayPaymentSerializer
 )
+
 
 
 class CreateRazorpayOrderView(APIView):
@@ -160,6 +162,33 @@ class VerifyRazorpayPaymentView(APIView):
                 note=f"Razorpay payment verified successfully (Payment ID: {razorpay_payment_id}).",
                 changed_by=request.user
             )
+
+            # Stock Deduction & SALE Transaction Logging with Idempotency
+            for item in order.items.select_related('product_variant', 'product_variant__inventory').all():
+                variant = item.product_variant
+                if variant and hasattr(variant, 'inventory') and variant.inventory:
+                    inv = Inventory.objects.select_for_update().get(id=variant.inventory.id)
+                    sale_ref = f"ORDER:{order.order_number}"
+                    already_deducted = InventoryTransaction.objects.filter(
+                        inventory=inv,
+                        reference=sale_ref,
+                        transaction_type=InventoryTransaction.TransactionType.SALE
+                    ).exists()
+
+                    if not already_deducted:
+                        if inv.available_stock < item.quantity:
+                            raise ValidationError({"detail": f"Insufficient stock available for '{item.product_name}'."})
+                        inv.quantity -= item.quantity
+                        inv.save(update_fields=['quantity', 'updated_at'])
+
+                        InventoryTransaction.objects.create(
+                            inventory=inv,
+                            transaction_type=InventoryTransaction.TransactionType.SALE,
+                            quantity=-item.quantity,
+                            reference=sale_ref,
+                            created_by=request.user
+                        )
+
 
         return Response({
             'detail': 'Payment verified successfully.',

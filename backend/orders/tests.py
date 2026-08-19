@@ -201,3 +201,77 @@ class OrdersAPITests(APITestCase):
         self.client.force_authenticate(user=self.user2)
         response = self.client.get(f'/api/orders/{order_number}/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_cod_checkout_successful(self):
+        self.client.force_authenticate(user=self.user1)
+        cart = Cart.objects.create(user=self.user1)
+        CartItem.objects.create(cart=cart, product=self.product, product_variant=self.variant, quantity=2)
+
+        response = self.client.post('/api/orders/checkout/', {
+            'address_id': self.address1.id,
+            'payment_method': 'COD'
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['status'], 'PLACED')
+        self.assertEqual(response.data['payment_status'], 'PENDING')
+
+        order = Order.objects.get(order_number=response.data['order_number'])
+        self.assertEqual(order.payment.payment_method, 'COD')
+        self.assertEqual(order.payment.status, 'PENDING')
+
+        # Stock should be deducted for COD
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 8)  # 10 - 2
+
+    def test_cancel_placed_order_restores_stock(self):
+        self.client.force_authenticate(user=self.user1)
+        cart = Cart.objects.create(user=self.user1)
+        CartItem.objects.create(cart=cart, product=self.product, product_variant=self.variant, quantity=3)
+
+        checkout_res = self.client.post('/api/orders/checkout/', {
+            'address_id': self.address1.id,
+            'payment_method': 'COD'
+        })
+        order_number = checkout_res.data['order_number']
+
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 7)  # 10 - 3
+
+        # Cancel order
+        cancel_res = self.client.post(f'/api/orders/{order_number}/cancel/')
+        self.assertEqual(cancel_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(cancel_res.data['status'], 'CANCELLED')
+
+        # Stock restored
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 10)  # 7 + 3
+
+    def test_cancel_shipped_order_rejected(self):
+        self.client.force_authenticate(user=self.user1)
+        cart = Cart.objects.create(user=self.user1)
+        CartItem.objects.create(cart=cart, product=self.product, product_variant=self.variant, quantity=1)
+
+        checkout_res = self.client.post('/api/orders/checkout/', {'address_id': self.address1.id})
+        order_number = checkout_res.data['order_number']
+
+        order = Order.objects.get(order_number=order_number)
+        order.status = Order.OrderStatus.SHIPPED
+        order.save()
+
+        cancel_res = self.client.post(f'/api/orders/{order_number}/cancel/')
+        self.assertEqual(cancel_res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('cannot be cancelled', str(cancel_res.data))
+
+    def test_non_owner_cannot_cancel_order(self):
+        self.client.force_authenticate(user=self.user1)
+        cart = Cart.objects.create(user=self.user1)
+        CartItem.objects.create(cart=cart, product=self.product, product_variant=self.variant, quantity=1)
+
+        checkout_res = self.client.post('/api/orders/checkout/', {'address_id': self.address1.id})
+        order_number = checkout_res.data['order_number']
+
+        # User 2 attempts to cancel User 1's order
+        self.client.force_authenticate(user=self.user2)
+        cancel_res = self.client.post(f'/api/orders/{order_number}/cancel/')
+        self.assertEqual(cancel_res.status_code, status.HTTP_404_NOT_FOUND)
+
