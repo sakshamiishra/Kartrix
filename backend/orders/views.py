@@ -13,6 +13,7 @@ from accounts.models import Address
 from accounts.serializers import AddressSerializer
 from cart.models import Cart
 from cart.serializers import CartItemSerializer
+from payments.models import Payment
 
 
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
@@ -21,7 +22,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'order_number'
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).prefetch_related('items', 'status_history').order_by('-created_at')
+        return Order.objects.filter(user=self.request.user).select_related('payment', 'address').prefetch_related('items', 'status_history').order_by('-created_at')
 
 
 class CheckoutViewSet(viewsets.ViewSet):
@@ -32,6 +33,7 @@ class CheckoutViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         address_id = serializer.validated_data['address_id']
+        payment_method = serializer.validated_data.get('payment_method', 'RAZORPAY')
         address = Address.objects.get(id=address_id, user=request.user)
 
         cart = Cart.objects.filter(user=request.user).first()
@@ -126,6 +128,15 @@ class CheckoutViewSet(viewsets.ViewSet):
                     subtotal=ci['subtotal'],
                 )
 
+            Payment.objects.create(
+                order=order,
+                payment_method=payment_method,
+                payment_gateway='Razorpay' if payment_method == 'RAZORPAY' else '',
+                amount=total_amount,
+                currency='INR',
+                status=Payment.PaymentStatus.PENDING,
+            )
+
             OrderStatusHistory.objects.create(
                 order=order,
                 status=Order.OrderStatus.PLACED,
@@ -138,3 +149,4 @@ class CheckoutViewSet(viewsets.ViewSet):
 
         output_serializer = OrderSerializer(order)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+

@@ -27,6 +27,7 @@ import { WishlistPage } from './pages/WishlistPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrderHistoryPage } from './pages/OrderHistoryPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
+import { OrderSuccessPage } from './pages/OrderSuccessPage';
 
 export function App() {
   return (
@@ -71,6 +72,14 @@ export function App() {
                         }
                       />
                       <Route
+                        path="/order-success/:orderNumber"
+                        element={
+                          <ProtectedRoute>
+                            <OrderSuccessPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
                         path="/orders"
                         element={
                           <ProtectedRoute>
@@ -86,6 +95,7 @@ export function App() {
                           </ProtectedRoute>
                         }
                       />
+
                       <Route
                         path="/wishlist"
                         element={

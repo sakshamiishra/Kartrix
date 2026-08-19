@@ -11,3 +11,7 @@ python-decouple==3.8
 sqlparse==0.6.0
 tzdata==2026.3
 django-filter==25.1
+razorpay==1.4.1
+setuptools==75.8.0
+
+

@@ -1,29 +1,117 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router';
-import { Package, MapPin, Clock, ArrowLeft, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router';
+import { Package, MapPin, Clock, ArrowLeft, ShieldCheck, CheckCircle2, CreditCard, Loader2 } from 'lucide-react';
 import { orderApi } from '../api/orderApi';
+import { paymentApi } from '../api/paymentApi';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 export function OrderDetailPage() {
   const { orderNumber } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { addToast } = useToast();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+
+  const fetchOrderDetail = async () => {
+    try {
+      const data = await orderApi.getOrderByNumber(orderNumber);
+      setOrder(data);
+    } catch (err) {
+      addToast('Failed to load order details.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrderDetail = async () => {
-      try {
-        const data = await orderApi.getOrderByNumber(orderNumber);
-        setOrder(data);
-      } catch (err) {
-        addToast('Failed to load order details.', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrderDetail();
   }, [orderNumber]);
+
+  const handleRetryPayment = async () => {
+    if (!order) return;
+    setPaying(true);
+    try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        addToast('Razorpay SDK failed to load. Check your internet connection.', 'error');
+        setPaying(false);
+        return;
+      }
+
+      const initData = await paymentApi.createRazorpayOrder({ order_number: order.order_number });
+
+      const options = {
+        key: initData.key_id,
+        amount: initData.amount,
+        currency: initData.currency,
+        name: 'EasyKart',
+        description: `Order #${order.order_number}`,
+        order_id: initData.gateway_order_id,
+        handler: async function (response) {
+          try {
+            const verifyRes = await paymentApi.verifyRazorpayPayment({
+              order_number: order.order_number,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            const successOrderNumber = verifyRes.order_number || order.order_number;
+            addToast(`Payment successful! Order #${successOrderNumber} confirmed.`, 'success');
+            navigate(`/order-success/${successOrderNumber}`);
+          } catch (verifyErr) {
+            const msg = verifyErr.response?.data?.detail || 'Payment verification failed.';
+            addToast(msg, 'error');
+            fetchOrderDetail();
+          } finally {
+            setPaying(false);
+          }
+        },
+
+        prefill: {
+          name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim(),
+          email: user?.email || '',
+        },
+        theme: {
+          color: '#F56A00',
+        },
+        modal: {
+          ondismiss: function () {
+            addToast('Razorpay checkout closed.', 'info');
+            setPaying(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (resp) {
+        addToast(`Payment failed: ${resp.error?.description || 'Transaction declined.'}`, 'error');
+        setPaying(false);
+      });
+      rzp.open();
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to initialize payment.';
+      addToast(msg, 'error');
+      setPaying(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -61,6 +149,9 @@ export function OrderDetailPage() {
     minute: '2-digit',
   });
 
+  const isPaid = order.payment_status === 'PAID';
+  const isPendingPayment = order.payment_status === 'PENDING';
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
       {/* Top Navigation & Status */}
@@ -68,7 +159,11 @@ export function OrderDetailPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">Order #{order.order_number}</h1>
-            <span className="px-3 py-1 text-xs font-bold bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 rounded-full border border-orange-200 dark:border-orange-800">
+            <span className={`px-3 py-1 text-xs font-bold rounded-full border ${
+              isPaid
+                ? 'bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800'
+                : 'bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+            }`}>
               {order.status}
             </span>
           </div>
@@ -116,8 +211,26 @@ export function OrderDetailPage() {
           <div className="text-xs space-y-2">
             <div className="flex justify-between text-gray-600 dark:text-gray-400">
               <span>Status</span>
-              <span className="font-bold text-amber-600 dark:text-amber-400 uppercase">{order.payment_status}</span>
+              <span className={`font-bold uppercase ${
+                isPaid ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+              }`}>
+                {order.payment_status}
+              </span>
             </div>
+            <div className="flex justify-between text-gray-600 dark:text-gray-400">
+              <span>Method</span>
+              <span className="font-semibold text-gray-900 dark:text-white">
+                {order.payment?.payment_method || 'Razorpay'}
+              </span>
+            </div>
+            {order.payment?.transaction_id && (
+              <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                <span>Txn ID</span>
+                <span className="font-mono text-[10px] text-gray-900 dark:text-white truncate max-w-[120px]">
+                  {order.payment.transaction_id}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between text-gray-600 dark:text-gray-400">
               <span>Subtotal</span>
               <span className="font-semibold text-gray-900 dark:text-white">₹{formattedSubtotal}</span>
@@ -127,10 +240,31 @@ export function OrderDetailPage() {
               <span className="font-semibold text-green-600 dark:text-green-400">FREE</span>
             </div>
             <div className="border-t border-gray-100 dark:border-[#2A2D32] pt-2 flex justify-between text-sm font-extrabold text-gray-900 dark:text-white">
-              <span>Total Paid/Due</span>
+              <span>Total Amount</span>
               <span className="text-orange-600 dark:text-orange-400">₹{formattedTotal}</span>
             </div>
           </div>
+
+          {/* Retry Payment Button */}
+          {isPendingPayment && (
+            <button
+              onClick={handleRetryPayment}
+              disabled={paying}
+              className="w-full mt-2 py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-600/20 transition-all flex items-center justify-center gap-2"
+            >
+              {paying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4" />
+                  <span>Pay Now via Razorpay</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -163,7 +297,7 @@ export function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Order Status Timeline */}
+      {/* Order Status History */}
       {order.status_history?.length > 0 && (
         <div className="bg-white dark:bg-[#17191B] rounded-3xl border border-gray-100 dark:border-[#2A2D32] p-6 space-y-4 shadow-sm">
           <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">

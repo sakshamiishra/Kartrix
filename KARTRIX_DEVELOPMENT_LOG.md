@@ -19,10 +19,10 @@
 
 ## Current Status
 
-- Current Phase: Phase 7.5 — Product Discovery & Navigation UX
+- Current Phase: Phase 8A — Razorpay Online Payment Integration
 - Phase Status: COMPLETE
-- Last Completed Task: Phase 7.5 — Product Discovery & Navigation UX Implementation & Verification
-- Next Planned Task: Phase 8 — Razorpay + COD Payment Integration
+- Last Completed Task: Phase 8A — Razorpay Online Payment Integration Implementation & Verification
+- Next Planned Task: Phase 8B — Cash on Delivery (COD) & Inventory Stock Deduction
 
 ## Phase Progress
 
@@ -36,11 +36,12 @@
 | 6 | Cart + Wishlist | COMPLETE |
 | 7 | Orders + Checkout | COMPLETE |
 | 7.5 | Product Discovery & Navigation UX | COMPLETE |
-| 8 | Razorpay + COD Payment Integration | NOT STARTED |
+| 8 | Razorpay + COD Payment Integration | IN PROGRESS (8A Complete) |
 | 9 | Reviews System | NOT STARTED |
 | 10 | Admin Panel | NOT STARTED |
 | 11 | Basic Recommendation Engine | NOT STARTED |
 | 12 | Advanced Features / AI/ML | NOT STARTED |
+
 
 ## Completed Work & Milestone Log
 
@@ -717,4 +718,62 @@ Registered public discovery routes in [`frontend/src/App.jsx`](file:///e:/checki
 - **Backend Unit Tests:** `.\env\Scripts\python backend/manage.py test products cart wishlist orders` $\rightarrow$ `Ran 35 tests in 164.957s ... OK (100% pass rate).`
 - **Frontend Production Build:** `npm run build` (in `frontend/`) $\rightarrow$ `✓ built in 19.87s` (1959 modules transformed, 0 errors).
 - **Manual Verification:** Verified `/products`, `/categories`, `/categories/:slug`, `/brands`, `/brands/:slug`, and `/deals` routes and Navbar active highlighting across light & dark themes.
+
+---
+
+### 2026-08-19 — Phase 8A — Razorpay Online Payment Integration
+
+**Phase:**
+Phase 8A — Razorpay Online Payment Integration
+
+**Status:**
+COMPLETE
+
+#### 1. Objective & Scope Accomplished
+Successfully implemented end-to-end Razorpay Test Mode online payment integration. Enabled server-side Razorpay Order creation, HMAC SHA256 payment signature verification, user ownership checking, server-side authoritative amount calculations, payment idempotency handling, frontend Razorpay Web Checkout JS modal integration, retry payment capabilities from Order Details, and automated unit testing without creating database migrations or altering database models.
+
+#### 2. Architecture & Security Protections
+- **Zero Client Amount Trust:** Amount is computed strictly on the backend from `Order.total_amount` in Indian Rupee paise (`int(order.total_amount * 100)`). Frontend is never allowed to dictate payment totals.
+- **HMAC SHA256 Signature Verification:** Verified using Razorpay SDK (`client.utility.verify_payment_signature`) on backend endpoint (`POST /api/payments/verify-razorpay-payment/`).
+- **Secret Isolation:** `RAZORPAY_KEY_SECRET` remains strictly contained within server environment settings (`python-decouple`). Only public `RAZORPAY_KEY_ID` is sent to frontend. `backend/.env` remains untracked in `.gitignore`.
+- **Order Ownership Guards:** Endpoints enforce `Order.objects.get(order_number=..., user=request.user)` preventing unauthorized users from creating or verifying payments for orders they do not own.
+- **Idempotency Protection:** Repeated verification of an already-paid order (`Payment.status == PAID`) safely returns HTTP 200 without duplicate state transitions or duplicate records.
+
+#### 3. Backend Endpoints Implemented
+- `POST /api/payments/create-razorpay-order/` — Authenticates user, calculates authoritative amount, creates Razorpay Order via SDK, creates/updates local `Payment` record (`status=PENDING`), and returns public `key_id`, `gateway_order_id`, `amount`, and `currency`.
+- `POST /api/payments/verify-razorpay-payment/` — Receives `razorpay_payment_id`, `razorpay_order_id`, `razorpay_signature`. Verifies HMAC SHA256 signature. On success, updates `Payment` (`status=PAID`, `paid_at=now()`, `transaction_id=razorpay_payment_id`), `Order` (`payment_status=PAID`, `status=CONFIRMED`), and creates `OrderStatusHistory` (`CONFIRMED`). On failure, updates `Payment` (`status=FAILED`) and raises HTTP 400.
+
+#### 4. Frontend UX & Payment Flow
+- **Payment Method Selection:** Updated [`CheckoutPage.jsx`](file:///e:/checkit/Easykart/frontend/src/pages/CheckoutPage.jsx) with Payment Method selector (`Razorpay Online Payment` active).
+- **Razorpay Modal:** Dynamically loads Razorpay Checkout JS (`https://checkout.razorpay.com/v1/checkout.js`), launches modal upon checkout confirmation, and routes to `/orders/${order_number}` on success, failure, or cancellation.
+- **Order Detail Retry:** Updated [`OrderDetailPage.jsx`](file:///e:/checkit/Easykart/frontend/src/pages/OrderDetailPage.jsx) to display payment method, payment status badge, transaction ID, and a "Pay Now via Razorpay" retry button for orders with `payment_status === PENDING`.
+
+#### 5. Files Created
+1. `backend/payments/serializers.py`
+2. `backend/payments/views.py`
+3. `backend/payments/urls.py`
+4. `backend/payments/tests.py`
+5. `frontend/src/api/paymentApi.js`
+
+#### 6. Files Modified
+1. `backend/requirements.txt` (Added `razorpay==1.4.1` and `setuptools==75.8.0`)
+2. `backend/easykart/settings.py` (Decoupled `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`)
+3. `backend/easykart/urls.py` (Included `api/payments/`)
+4. `backend/orders/serializers.py` (Included `PaymentSerializer` in `OrderSerializer`, added `payment_method` to `CheckoutSerializer`)
+5. `backend/orders/views.py` (Updated `CheckoutViewSet.create` to initialize `Payment` object)
+6. `frontend/src/api/orderApi.js` (Updated `checkout` method to accept `payment_method`)
+7. `frontend/src/pages/CheckoutPage.jsx` (Added payment method selection & Razorpay checkout modal logic)
+8. `frontend/src/pages/OrderDetailPage.jsx` (Added payment details display & retry payment button)
+
+#### 7. Explicit Exclusions & Phase Boundaries
+- **COD:** Cash on Delivery was **NOT** implemented in Phase 8A (deferred to Phase 8B).
+- **Inventory Stock Deduction:** Stock deduction (`SALE` transaction) was **NOT** implemented in Phase 8A (deferred to Phase 8B).
+- **Webhooks & Refunds:** Webhooks and refund management were **NOT** implemented in Phase 8A.
+
+#### 8. Automated Verification Results
+- **Django System Check:** `.\env\Scripts\python backend/manage.py check` $\rightarrow$ `System check identified no issues (0 silenced).`
+- **Django Migrations Check:** `.\env\Scripts\python backend/manage.py makemigrations --check --dry-run` $\rightarrow$ `No changes detected.`
+- **Backend Unit Tests:** `.\env\Scripts\python backend/manage.py test payments orders cart wishlist products` $\rightarrow$ `Ran 42 tests in 185.263s ... OK (100% pass rate).`
+- **Frontend Production Build:** `npm run build` (in `frontend/`) $\rightarrow$ `✓ built in 25.12s` (1960 modules transformed, 0 errors).
+
 

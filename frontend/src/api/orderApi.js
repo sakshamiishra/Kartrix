@@ -2,10 +2,11 @@ import api from './axios';
 
 export const orderApi = {
   // Submit checkout converting cart to order
-  checkout: async ({ address_id }) => {
-    const response = await api.post('/api/orders/checkout/', { address_id });
+  checkout: async ({ address_id, payment_method = 'RAZORPAY' }) => {
+    const response = await api.post('/api/orders/checkout/', { address_id, payment_method });
     return response.data;
   },
+
 
   // Get user order history list
   getOrders: async () => {

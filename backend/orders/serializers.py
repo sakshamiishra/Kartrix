@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Order, OrderItem, OrderStatusHistory
 from accounts.models import Address
 from accounts.serializers import AddressSerializer
+from payments.serializers import PaymentSerializer
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -37,6 +38,7 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     status_history = OrderStatusHistorySerializer(many=True, read_only=True)
     address_detail = AddressSerializer(source='address', read_only=True)
+    payment = PaymentSerializer(read_only=True)
 
     class Meta:
         model = Order
@@ -53,6 +55,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'total_amount',
             'status',
             'payment_status',
+            'payment',
             'items',
             'status_history',
             'created_at',
@@ -63,6 +66,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class CheckoutSerializer(serializers.Serializer):
     address_id = serializers.IntegerField(required=True)
+    payment_method = serializers.ChoiceField(choices=['RAZORPAY', 'COD'], default='RAZORPAY', required=False)
 
     def validate_address_id(self, value):
         user = self.context['request'].user
@@ -71,3 +75,4 @@ class CheckoutSerializer(serializers.Serializer):
         except Address.DoesNotExist:
             raise serializers.ValidationError("Selected address does not exist or does not belong to your account.")
         return value
+
