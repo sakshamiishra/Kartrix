@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router';
 import { ShoppingBag, Heart, Search, User, Sun, Moon, Menu, X, LogOut, Package, MapPin } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,7 @@ export const Navbar = () => {
   const { totalItems } = useCart();
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,10 +29,17 @@ export const Navbar = () => {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Products', path: '/products' },
-    { name: 'Categories', path: '/products' },
-    { name: 'Brands', path: '/products' },
-    { name: 'Deals', path: '/products' },
+    { name: 'Categories', path: '/categories' },
+    { name: 'Brands', path: '/brands' },
+    { name: 'Deals', path: '/deals' },
   ];
+
+  const isLinkActive = (path) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0F1011]/90 backdrop-blur-md border-b border-gray-100 dark:border-[#2A2D32] transition-colors duration-200">
@@ -50,19 +58,20 @@ export const Navbar = () => {
 
           {/* Desktop Nav Links */}
           <nav className="hidden lg:flex items-center gap-8 text-sm font-medium">
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.name}
-                to={link.path}
-                className={({ isActive }) =>
-                  `transition-colors hover:text-orange-600 dark:hover:text-orange-500 ${
-                    isActive ? 'text-orange-600 dark:text-orange-500 font-bold' : 'text-gray-600 dark:text-gray-300'
-                  }`
-                }
-              >
-                {link.name}
-              </NavLink>
-            ))}
+            {navLinks.map((link) => {
+              const active = isLinkActive(link.path);
+              return (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  className={`transition-colors hover:text-orange-600 dark:hover:text-orange-500 ${
+                    active ? 'text-orange-600 dark:text-orange-500 font-bold' : 'text-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Search Bar */}
@@ -222,20 +231,21 @@ export const Navbar = () => {
           </form>
 
           <nav className="flex flex-col space-y-2">
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.name}
-                to={link.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `px-3 py-2 text-sm rounded-lg transition-colors ${
-                    isActive ? 'bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-bold' : 'text-gray-700 dark:text-gray-300'
-                  }`
-                }
-              >
-                {link.name}
-              </NavLink>
-            ))}
+            {navLinks.map((link) => {
+              const active = isLinkActive(link.path);
+              return (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                    active ? 'bg-orange-50 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 font-bold' : 'text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
           </nav>
         </div>
       )}

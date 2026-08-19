@@ -13,6 +13,11 @@ import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
 import { ProductListPage } from './pages/ProductListPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
+import { CategoriesPage } from './pages/CategoriesPage';
+import { CategoryProductsPage } from './pages/CategoryProductsPage';
+import { BrandsPage } from './pages/BrandsPage';
+import { BrandProductsPage } from './pages/BrandProductsPage';
+import { DealsPage } from './pages/DealsPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -40,6 +45,11 @@ export function App() {
                       <Route path="/" element={<HomePage />} />
                       <Route path="/products" element={<ProductListPage />} />
                       <Route path="/products/:slug" element={<ProductDetailPage />} />
+                      <Route path="/categories" element={<CategoriesPage />} />
+                      <Route path="/categories/:slug" element={<CategoryProductsPage />} />
+                      <Route path="/brands" element={<BrandsPage />} />
+                      <Route path="/brands/:slug" element={<BrandProductsPage />} />
+                      <Route path="/deals" element={<DealsPage />} />
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/register" element={<RegisterPage />} />
 

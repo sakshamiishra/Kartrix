@@ -20,9 +20,9 @@
 ## Current Status
 
 - Current Phase: Phase 7.5 — Product Discovery & Navigation UX
-- Phase Status: PLANNED / APPROVED (NOT YET IMPLEMENTED)
-- Last Completed Task: Phase 7 — Orders + Checkout Implementation & Verification
-- Next Planned Task: Phase 7.5 — Product Discovery & Navigation UX
+- Phase Status: COMPLETE
+- Last Completed Task: Phase 7.5 — Product Discovery & Navigation UX Implementation & Verification
+- Next Planned Task: Phase 8 — Razorpay + COD Payment Integration
 
 ## Phase Progress
 
@@ -35,7 +35,7 @@
 | 5 | Customer Frontend | COMPLETE |
 | 6 | Cart + Wishlist | COMPLETE |
 | 7 | Orders + Checkout | COMPLETE |
-| 7.5 | Product Discovery & Navigation UX | PLANNED |
+| 7.5 | Product Discovery & Navigation UX | COMPLETE |
 | 8 | Razorpay + COD Payment Integration | NOT STARTED |
 | 9 | Reviews System | NOT STARTED |
 | 10 | Admin Panel | NOT STARTED |
@@ -648,3 +648,73 @@ Phase 7.5 does **NOT** implement:
 #### 10. Status
 **Phase 7.5: PLANNED / APPROVED — NOT YET IMPLEMENTED**
 *(Implementation, code changes, and verification testing will take place when execution begins.)*
+
+---
+
+### 2026-08-19 — Phase 7.5 — Product Discovery & Navigation UX (Implementation & Verification)
+
+**Phase:**
+Phase 7.5 — Product Discovery & Navigation UX
+
+**Status:**
+COMPLETE
+
+#### 1. Objective & Scope Accomplished
+Successfully implemented dedicated customer-facing product discovery, category browsing, brand discovery, active deals presentation, navbar active-state highlighting correction, and a structural layout anchor for future AI recommendations (`"Recommended for You"`), strictly adhering to the approved Phase 7.5 blueprint without creating database models or schema migrations.
+
+#### 2. Navbar Active-State Fix
+- **Root Cause Identified:** `Navbar.jsx` defined `path: '/products'` for Products, Categories, Brands, and Deals links. As a result, React Router's `<NavLink to="/products">` evaluated `isActive = true` for all four links simultaneously on `/products`.
+- **Resolution:** Updated `Navbar.jsx` to map distinct routes (`/products`, `/categories`, `/brands`, `/deals`). Implemented custom `isLinkActive` prefix matching (`location.pathname.startsWith(path)`), ensuring only the active section is highlighted.
+
+#### 3. Dedicated Categories Experience
+- Created [`frontend/src/pages/CategoriesPage.jsx`](file:///e:/checkit/Easykart/frontend/src/pages/CategoriesPage.jsx) for `/categories`, displaying category grid cards with images, names, descriptions, and "Browse Category" actions.
+- Created [`frontend/src/pages/CategoryProductsPage.jsx`](file:///e:/checkit/Easykart/frontend/src/pages/CategoryProductsPage.jsx) for `/categories/:slug`, displaying category-filtered products, category header banner, breadcrumbs, sort dropdown, filter sidebar, and pagination controls.
+
+#### 4. Dedicated Brands Experience
+- Created [`frontend/src/pages/BrandsPage.jsx`](file:///e:/checkit/Easykart/frontend/src/pages/BrandsPage.jsx) for `/brands`, displaying brand grid cards with logos, names, descriptions, and "Browse Brand" actions.
+- Created [`frontend/src/pages/BrandProductsPage.jsx`](file:///e:/checkit/Easykart/frontend/src/pages/BrandProductsPage.jsx) for `/brands/:slug`, displaying brand-filtered products, brand header banner, breadcrumbs, sort dropdown, filter sidebar, and pagination controls.
+
+#### 5. Dedicated Deals & Offers Experience
+- Added minimal `on_sale` filter to [`backend/products/filters.py`](file:///e:/checkit/Easykart/backend/products/filters.py) (`variants__discount_price__isnull=False` and `variants__discount_price__lt=F('variants__price')`).
+- Created [`frontend/src/pages/DealsPage.jsx`](file:///e:/checkit/Easykart/frontend/src/pages/DealsPage.jsx) for `/deals`, displaying products on sale with original price, discounted price in INR (`₹`), calculated discount percentage (`((price - discount_price) / price) * 100`), `"SALE"` badge, wishlist heart toggles, and clean empty state handling.
+- *Explicitly Excluded:* No Deal database models, coupon engine, deal scheduling, start/end dates, or admin deal management were created (deferred to Phase 10 Admin Panel).
+
+#### 6. Products Page Structural Section Anchor
+- Updated [`frontend/src/pages/ProductListPage.jsx`](file:///e:/checkit/Easykart/frontend/src/pages/ProductListPage.jsx) to add a structural layout section anchor: `"Recommended for You"`.
+- *Explicitly Excluded:* No DeepFM, ML model, or recommendation backend APIs were created or invoked.
+
+#### 7. Routing Registered
+Registered public discovery routes in [`frontend/src/App.jsx`](file:///e:/checkit/Easykart/frontend/src/App.jsx):
+- `/categories` $\rightarrow$ `CategoriesPage`
+- `/categories/:slug` $\rightarrow$ `CategoryProductsPage`
+- `/brands` $\rightarrow$ `BrandsPage`
+- `/brands/:slug` $\rightarrow$ `BrandProductsPage`
+- `/deals` $\rightarrow$ `DealsPage`
+
+#### 8. Files Created
+1. `frontend/src/pages/CategoriesPage.jsx`
+2. `frontend/src/pages/CategoryProductsPage.jsx`
+3. `frontend/src/pages/BrandsPage.jsx`
+4. `frontend/src/pages/BrandProductsPage.jsx`
+5. `frontend/src/pages/DealsPage.jsx`
+
+#### 9. Files Modified
+1. `backend/products/filters.py` (Added `on_sale` filter method)
+2. `frontend/src/components/layout/Navbar.jsx` (Fixed `navLinks` paths & active state)
+3. `frontend/src/pages/ProductListPage.jsx` (Added `"Recommended for You"` anchor)
+4. `frontend/src/App.jsx` (Registered discovery routes)
+5. `KARTRIX_DEVELOPMENT_LOG.md` (Updated status & milestone log)
+
+#### 10. Scope & Boundary Protections
+- **Zero** database schema modifications or migrations created.
+- **Zero** changes to `accounts`, `cart`, `wishlist`, `orders`, or `payments` apps.
+- **Zero** changes to Phase 8 payment functionality or Phase 7 checkout logic.
+- DeepFM and Admin Deal Management remain strictly deferred to future phases.
+
+#### 11. Verification & Automated Test Results
+- **Django System Check:** `.\env\Scripts\python backend/manage.py check` $\rightarrow$ `System check identified no issues (0 silenced).`
+- **Django Migrations Check:** `.\env\Scripts\python backend/manage.py makemigrations --check --dry-run` $\rightarrow$ `No changes detected.`
+- **Backend Unit Tests:** `.\env\Scripts\python backend/manage.py test products cart wishlist orders` $\rightarrow$ `Ran 35 tests in 164.957s ... OK (100% pass rate).`
+- **Frontend Production Build:** `npm run build` (in `frontend/`) $\rightarrow$ `✓ built in 19.87s` (1959 modules transformed, 0 errors).
+- **Manual Verification:** Verified `/products`, `/categories`, `/categories/:slug`, `/brands`, `/brands/:slug`, and `/deals` routes and Navbar active highlighting across light & dark themes.
+

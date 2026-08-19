@@ -1,32 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router';
-import { SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { useParams, Link, useSearchParams } from 'react-router';
+import { ChevronRight, SlidersHorizontal, ArrowUpDown, Tag } from 'lucide-react';
 import { productApi } from '../api/productApi';
 import { SidebarFilter } from '../components/common/SidebarFilter';
 import { ProductGrid } from '../components/products/ProductGrid';
 import { ProductGridSkeleton } from '../components/common/LoadingSkeleton';
 import { Pagination } from '../components/common/Pagination';
 
-export const ProductListPage = () => {
+export const CategoryProductsPage = () => {
+  const { slug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [products, setProducts] = useState([]);
+  const [categoryInfo, setCategoryInfo] = useState(null);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [products, setProducts] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
-  // Sync state with URL params
   const searchQuery = searchParams.get('search') || '';
-  const selectedCategory = searchParams.get('category') || '';
   const selectedBrand = searchParams.get('brand') || '';
   const minPrice = searchParams.get('min_price') || '';
   const maxPrice = searchParams.get('max_price') || '';
   const ordering = searchParams.get('ordering') || '-created_at';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
-  // Fetch Categories & Brands once
+  // Fetch filter metadata & current category detail
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
@@ -34,25 +34,29 @@ export const ProductListPage = () => {
           productApi.getCategories(),
           productApi.getBrands(),
         ]);
-        setCategories(catRes.results || []);
+        const allCats = catRes.results || [];
+        setCategories(allCats);
         setBrands(brandRes.results || []);
+
+        const currentCat = allCats.find((c) => c.slug === slug);
+        setCategoryInfo(currentCat || { name: slug, slug });
       } catch (err) {
-        console.error('Error fetching filter metadata:', err);
+        console.error('Error fetching category metadata:', err);
       }
     };
     fetchMetadata();
-  }, []);
+  }, [slug]);
 
-  // Fetch Products whenever query params change
+  // Fetch category products
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchCategoryProducts = async () => {
       setLoading(true);
       try {
         const params = {
+          category: slug,
           page: currentPage,
         };
         if (searchQuery) params.search = searchQuery;
-        if (selectedCategory) params.category = selectedCategory;
         if (selectedBrand) params.brand = selectedBrand;
         if (minPrice) params.min_price = minPrice;
         if (maxPrice) params.max_price = maxPrice;
@@ -62,13 +66,13 @@ export const ProductListPage = () => {
         setProducts(data.results || []);
         setTotalCount(data.count || 0);
       } catch (err) {
-        console.error('Error fetching products:', err);
+        console.error('Error fetching category products:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
-  }, [searchQuery, selectedCategory, selectedBrand, minPrice, maxPrice, ordering, currentPage]);
+    fetchCategoryProducts();
+  }, [slug, searchQuery, selectedBrand, minPrice, maxPrice, ordering, currentPage]);
 
   const updateParam = (key, value) => {
     const newParams = new URLSearchParams(searchParams);
@@ -77,7 +81,6 @@ export const ProductListPage = () => {
     } else {
       newParams.delete(key);
     }
-    // Reset page to 1 on filter changes
     if (key !== 'page') {
       newParams.set('page', '1');
     }
@@ -90,20 +93,43 @@ export const ProductListPage = () => {
 
   return (
     <div className="space-y-6 pb-16">
-      
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-[#2A2D32]">
+      {/* Breadcrumb Navigation */}
+      <nav className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+        <Link to="/" className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+          Home
+        </Link>
+        <ChevronRight className="w-3.5 h-3.5" />
+        <Link to="/categories" className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+          Categories
+        </Link>
+        <ChevronRight className="w-3.5 h-3.5" />
+        <span className="text-gray-900 dark:text-white capitalize">
+          {categoryInfo?.name || slug}
+        </span>
+      </nav>
+
+      {/* Category Banner Header */}
+      <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent dark:from-orange-500/20 dark:via-amber-500/10 dark:to-transparent p-6 rounded-2xl border border-orange-100 dark:border-orange-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Products Catalog
+          <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <Tag className="w-4 h-4" />
+            <span>Category Collection</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight capitalize">
+            {categoryInfo?.name || slug}
           </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Showing {totalCount} active items in catalog
+          {categoryInfo?.description && (
+            <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 max-w-xl">
+              {categoryInfo.description}
+            </p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            Showing {totalCount} items in this category
           </p>
         </div>
 
-        {/* Mobile Filter Trigger & Sort Dropdown */}
-        <div className="flex items-center gap-3">
+        {/* Mobile Filter Trigger & Sorting */}
+        <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setMobileFilterOpen(true)}
             className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#17191B] border border-gray-200 dark:border-[#2A2D32] rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-orange-500"
@@ -128,36 +154,15 @@ export const ProductListPage = () => {
         </div>
       </div>
 
-      {/* Recommended for You Placeholder Section Anchor */}
-      <div className="bg-gradient-to-r from-orange-500/5 via-amber-500/5 to-transparent dark:from-orange-500/10 dark:via-amber-500/5 dark:to-transparent border border-orange-100 dark:border-orange-950/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-lg shrink-0">
-            ✨
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white">
-              Recommended for You
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Personalized product recommendations structure prepared for future AI recommendation engine integration.
-            </p>
-          </div>
-        </div>
-        <span className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full border border-orange-200/60 dark:border-orange-900/40 shrink-0 self-start sm:self-auto">
-          AI Recommendations Anchor
-        </span>
-      </div>
-
-      {/* Main Content Layout */}
+      {/* Main Layout */}
       <div className="flex gap-8">
-        
-        {/* Persistent Desktop Sidebar Filter */}
+        {/* Desktop Sidebar Filter */}
         <div className="hidden lg:block">
           <SidebarFilter
             categories={categories}
             brands={brands}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={(val) => updateParam('category', val)}
+            selectedCategory={slug}
+            setSelectedCategory={() => {}} // Category locked to current page context
             selectedBrand={selectedBrand}
             setSelectedBrand={(val) => updateParam('brand', val)}
             searchQuery={searchQuery}
@@ -170,7 +175,7 @@ export const ProductListPage = () => {
           />
         </div>
 
-        {/* Product Results Grid */}
+        {/* Product Results */}
         <div className="flex-1 space-y-8">
           {loading ? (
             <ProductGridSkeleton count={8} />
@@ -186,10 +191,9 @@ export const ProductListPage = () => {
             </>
           )}
         </div>
-
       </div>
 
-      {/* Mobile Filter Drawer Overlay */}
+      {/* Mobile Filter Drawer */}
       {mobileFilterOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div
@@ -200,8 +204,8 @@ export const ProductListPage = () => {
             <SidebarFilter
               categories={categories}
               brands={brands}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={(val) => updateParam('category', val)}
+              selectedCategory={slug}
+              setSelectedCategory={() => {}}
               selectedBrand={selectedBrand}
               setSelectedBrand={(val) => updateParam('brand', val)}
               searchQuery={searchQuery}
@@ -217,7 +221,6 @@ export const ProductListPage = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
