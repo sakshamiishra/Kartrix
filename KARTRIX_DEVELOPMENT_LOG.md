@@ -19,10 +19,10 @@
 
 ## Current Status
 
-- Current Phase: Phase 7 — Orders + Checkout
-- Phase Status: COMPLETE
+- Current Phase: Phase 7.5 — Product Discovery & Navigation UX
+- Phase Status: PLANNED / APPROVED (NOT YET IMPLEMENTED)
 - Last Completed Task: Phase 7 — Orders + Checkout Implementation & Verification
-- Next Planned Task: Phase 8 — Razorpay + COD Payment Integration
+- Next Planned Task: Phase 7.5 — Product Discovery & Navigation UX
 
 ## Phase Progress
 
@@ -35,6 +35,7 @@
 | 5 | Customer Frontend | COMPLETE |
 | 6 | Cart + Wishlist | COMPLETE |
 | 7 | Orders + Checkout | COMPLETE |
+| 7.5 | Product Discovery & Navigation UX | PLANNED |
 | 8 | Razorpay + COD Payment Integration | NOT STARTED |
 | 9 | Reviews System | NOT STARTED |
 | 10 | Admin Panel | NOT STARTED |
@@ -559,4 +560,91 @@ Only four frontend files were modified:
 10. Backend test suite (`python backend/manage.py test cart wishlist`) passed 12/12 tests cleanly.
 11. Full end-to-end browser verification completed successfully.
 
+---
 
+### 2026-08-19 — Phase 7.5 — Product Discovery & Navigation UX (Planned Milestone)
+
+**Phase:**
+Phase 7.5 — Product Discovery & Navigation UX
+
+**Status:**
+PLANNED / APPROVED (NOT YET IMPLEMENTED)
+
+#### 1. Why Phase 7.5 Was Introduced
+Phase 7 (Orders + Checkout) is fully complete and verified. Phase 8 is reserved for Razorpay + COD Payment Integration. Before beginning payment gateway integration, an intermediate milestone (Phase 7.5) was approved to establish dedicated customer-facing product discovery, category browsing, brand discovery, deals presentation, and navbar navigation UX.
+
+#### 2. Products
+- Complete catalog browsing experience.
+- Real-time search.
+- Category filtering.
+- Brand filtering.
+- Sorting options.
+- Page pagination.
+- Product cards and grid layout.
+- Direct product detail navigation.
+- Navbar active-state correction.
+- Structural preparation for a future `"Recommended for You"` section.
+- *Note:* DeepFM ML recommendation engine is **NOT** implemented in Phase 7.5 and remains assigned to the future recommendation/ML phase.
+
+#### 3. Categories
+- Dedicated `/categories` page for browsing available product categories.
+- Flow: `/categories` $\rightarrow$ Browse Categories $\rightarrow$ Select Category $\rightarrow$ Category Product Listing $\rightarrow$ Product Detail.
+
+#### 4. Brands
+- Dedicated `/brands` page for browsing available brands.
+- Flow: `/brands` $\rightarrow$ Browse Brands $\rightarrow$ Select Brand $\rightarrow$ Brand Product Listing $\rightarrow$ Product Detail.
+
+#### 5. Deals
+- Dedicated customer-facing `/deals` page displaying active offers, original prices, offer prices, discount percentages, and empty states.
+- *Architectural Decision:* Deals will become Admin-controlled in the future Admin Panel (Phase 10), enabling admins to set deal products, discounts, start/end dates, and active status.
+- Admin deal management is **NOT** part of Phase 7.5.
+
+#### 6. Navigation
+- Main customer navigation destinations: `Home`, `Products`, `Categories`, `Brands`, `Deals`.
+- Expected active-state behavior:
+  - `/products` $\rightarrow$ Products active ONLY
+  - `/categories` $\rightarrow$ Categories active ONLY
+  - `/brands` $\rightarrow$ Brands active ONLY
+  - `/deals` $\rightarrow$ Deals active ONLY
+- Product Detail pages retain appropriate Products-section context.
+
+#### 7. Phase Boundaries
+Phase 7.5 does **NOT** implement:
+- Razorpay gateway or COD payment workflows.
+- Payment processing, verification, or webhooks.
+- Payment status transitions.
+- DeepFM or personalized ML recommendations.
+- Admin Panel or Admin-controlled deal management.
+- Reviews system.
+
+#### 8. Future Connections
+- **Products:** `Phase 7.5 Products → Future Recommendation/ML Phase → DeepFM → Recommended for You`
+- **Deals:** `Phase 7.5 Deals → Future Admin Panel (Phase 10) → Admin-controlled Offers → Active Deals → Customer-facing Deals Page`
+
+#### 9. Acceptance Criteria
+1. Products has a dedicated functional catalog experience.
+2. Product search works.
+3. Category filtering works.
+4. Brand filtering works.
+5. Catalog sorting works.
+6. Page pagination works.
+7. Product detail navigation works.
+8. Categories has a dedicated browsing destination (`/categories`).
+9. Category selection leads to correct filtered products.
+10. Brands has a dedicated browsing destination (`/brands`).
+11. Brand selection leads to correct filtered products.
+12. Deals has a dedicated customer-facing destination (`/deals`).
+13. Active deals can be displayed.
+14. Deals empty state is handled correctly.
+15. Navbar active states correctly identify current active section.
+16. Cart functionality remains unaffected.
+17. Wishlist functionality remains unaffected.
+18. Authentication functionality remains unaffected.
+19. Phase 7 Orders/Checkout functionality remains unaffected.
+20. Phase 8 payment functionality remains untouched.
+21. DeepFM recommendation engine remains untouched until its designated future phase.
+22. Admin-controlled deal management remains untouched until the Admin Panel phase (Phase 10).
+
+#### 10. Status
+**Phase 7.5: PLANNED / APPROVED — NOT YET IMPLEMENTED**
+*(Implementation, code changes, and verification testing will take place when execution begins.)*

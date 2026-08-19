@@ -203,6 +203,8 @@ backend/
        ↓
 7. Orders + checkout
        ↓
+7.5. Product discovery & navigation UX
+       ↓
 8. Razorpay + COD
        ↓
 9. Reviews
@@ -657,7 +659,255 @@ Customer buys → ₹4,999
 Later:
 Nike Shoes = ₹5,999
 
-Old order still shows → ₹4,999
+---
+
+# PHASE 7.5 — PRODUCT DISCOVERY & NAVIGATION UX
+
+**Status:** PLANNED / APPROVED (NOT YET IMPLEMENTED)  
+**Purpose:** Improve the customer-facing product discovery and navigation experience after Orders + Checkout (Phase 7) and before Razorpay + COD Payment Integration (Phase 8).
+
+Phase 7.5 establishes the frontend product discovery structure while deliberately leaving payment processing (Phase 8), DeepFM recommendations (Phase 11/12), and Admin-controlled deal management (Phase 10) to their designated future phases.
+
+---
+
+## 7.5.1 Products
+
+Establish and improve a dedicated Products catalog experience containing:
+- Complete product catalog listing.
+- Real-time product search.
+- Category filtering.
+- Brand filtering.
+- Catalog sorting (Newest, Price: Low to High, Price: High to Low, Name).
+- Page pagination controls.
+- Responsive product card and grid presentation.
+- Direct navigation to Product Detail pages.
+- Correct navbar active-state behavior.
+
+The Products page should also be structured so a future section can be added:
+```text
+Recommended for You
+```
+
+> [!IMPORTANT]
+> Do **NOT** implement DeepFM or any recommendation engine in Phase 7.5.
+
+The future recommendation/ML phase will later evolve this into:
+```text
+Products
+    ↓
+Recommended for You
+    ↓
+DeepFM Recommendation Engine
+    ↓
+Personalized Product Ranking
+```
+
+---
+
+## 7.5.2 Categories
+
+Create a dedicated category-discovery experience.
+
+**Expected Flow:**
+```text
+/categories
+    ↓
+Browse Categories
+    ↓
+Select Category
+    ↓
+Category Product Listing
+    ↓
+Product Detail
+```
+
+**Requirements:**
+- Dedicated `/categories` page displaying all available categories.
+- Selectable category cards/links leading to filtered category product listings.
+- Reuses existing product listing and filter infrastructure.
+- Avoids duplicating product data.
+
+---
+
+## 7.5.3 Brands
+
+Create a dedicated brand-discovery experience.
+
+**Expected Flow:**
+```text
+/brands
+    ↓
+Browse Brands
+    ↓
+Select Brand
+    ↓
+Brand Product Listing
+    ↓
+Product Detail
+```
+
+**Requirements:**
+- Dedicated `/brands` page displaying all available brands.
+- Selectable brand cards/logos leading to filtered brand product listings.
+- Reuses existing product infrastructure.
+- Avoids duplicating product data.
+
+---
+
+## 7.5.4 Deals
+
+Create a dedicated customer-facing Deals experience.
+
+**Expected Flow:**
+```text
+/deals
+    ↓
+Active Deals / Offers
+    ↓
+Product Detail / Cart / Wishlist
+```
+
+**Expected Display:**
+- Original price (INR / ₹).
+- Offer price and/or discount percentage.
+- Discount information and deal presentation cards.
+- Clean empty state when no active deals exist.
+
+> [!IMPORTANT]
+> **Architectural Decision:** Deals are intended to become **ADMIN-CONTROLLED** in the future Admin Panel (Phase 10).
+
+The future Admin Panel will allow administrators to manage:
+- Product or product variant included in a deal.
+- Discount/offer value.
+- Deal start date and time.
+- Deal end date and time.
+- Active/inactive deal status.
+- Optional deal title and deal badge.
+
+Phase 7.5 must **NOT** implement the Admin Panel or full deal management. Do not hardcode a permanent deal list. The customer-facing Deals architecture is structured to cleanly consume future Admin-controlled active deals once Phase 10 is built.
+
+---
+
+## 7.5.5 Navigation
+
+Main customer navigation will feature clearly separated destinations:
+```text
+Home  │  Products  │  Categories  │  Brands  │  Deals
+```
+
+**Expected Nav Destinations:**
+- **Products:** Complete product catalog (`/products`)
+- **Categories:** Category discovery (`/categories`)
+- **Brands:** Brand discovery (`/brands`)
+- **Deals:** Active deals/offers (`/deals`)
+
+**Navbar Active-State Behavior:**
+- `/products` $\rightarrow$ Products active ONLY
+- `/categories` $\rightarrow$ Categories active ONLY
+- `/brands` $\rightarrow$ Brands active ONLY
+- `/deals` $\rightarrow$ Deals active ONLY
+
+Product Detail pages (`/products/:slug`) maintain sensible Products-section context.
+
+---
+
+## 7.5.6 Design & UX Consistency
+
+Phase 7.5 utilizes the existing EasyKart design and component system, reusing:
+- Product cards (`ProductCard.jsx`)
+- Product detail components (`ProductGallery.jsx`, `VariantSelector.jsx`)
+- Search bar and filtering sidebar
+- Pagination controls
+- Responsive Navbar and Footer
+- Global Toast notification system
+- Cart and Wishlist contexts and badges
+- Authentication and `<ProtectedRoute>` guards
+
+---
+
+## 7.5.7 Explicit Phase Boundaries
+
+Phase 7.5 **MUST NOT** implement:
+- Razorpay payment gateway integration (Phase 8).
+- COD payment collection workflows (Phase 8).
+- Payment processing, verification, signature validation, or webhooks (Phase 8).
+- Payment status transitions (Phase 8).
+- DeepFM ML recommendation models (Phase 11/12).
+- Personalized ML recommendations (Phase 11/12).
+- Admin Panel or Admin-controlled deal management (Phase 10).
+- Product Reviews system (Phase 9).
+
+These remain strictly assigned to their respective future phases.
+
+---
+
+## 7.5.8 Future Integration
+
+**Products Integration Flow:**
+```text
+Phase 7.5 Products
+    ↓
+Future Recommendation/ML Phase
+    ↓
+DeepFM
+    ↓
+Recommended for You
+```
+
+**Deals Integration Flow:**
+```text
+Phase 7.5 Deals
+    ↓
+Future Admin Panel (Phase 10)
+    ↓
+Admin-controlled Offers
+    ↓
+Active Deals
+    ↓
+Customer-facing Deals Page (/deals)
+```
+
+---
+
+## 7.5.9 Acceptance Criteria
+
+Phase 7.5 will be considered complete when:
+1. Products has a dedicated functional catalog experience.
+2. Product search works cleanly.
+3. Category filtering works.
+4. Brand filtering works.
+5. Catalog sorting works.
+6. Page pagination works.
+7. Product detail navigation works.
+8. Categories has a dedicated browsing destination (`/categories`).
+9. Category selection leads to the correct filtered products.
+10. Brands has a dedicated browsing destination (`/brands`).
+11. Brand selection leads to the correct filtered products.
+12. Deals has a dedicated customer-facing destination (`/deals`).
+13. Active deals can be displayed.
+14. Deals empty state is handled correctly.
+15. Navbar active states correctly identify the current active section.
+16. Cart functionality remains unaffected.
+17. Wishlist functionality remains unaffected.
+18. Authentication functionality remains unaffected.
+19. Phase 7 Orders/Checkout functionality remains unaffected.
+20. Phase 8 payment functionality remains untouched.
+21. DeepFM recommendation engine remains untouched until its designated future phase.
+22. Admin-controlled deal management remains untouched until the Admin Panel phase (Phase 10).
+
+---
+
+## 7.5.10 Roadmap Position
+
+```text
+Phase 7
+    Orders + Checkout
+        ↓
+Phase 7.5
+    Product Discovery & Navigation UX (PLANNED)
+        ↓
+Phase 8
+    Razorpay + COD Payment Integration
 ```
 
 ---
