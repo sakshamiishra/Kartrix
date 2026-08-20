@@ -71,7 +71,7 @@ export function OrderDetailPage() {
         key: initData.key_id,
         amount: initData.amount,
         currency: initData.currency,
-        name: 'EasyKart',
+        name: 'Kartrix',
         description: `Order #${order.order_number}`,
         order_id: initData.gateway_order_id,
         handler: async function (response) {

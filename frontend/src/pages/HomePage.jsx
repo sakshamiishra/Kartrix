@@ -65,7 +65,7 @@ export const HomePage = () => {
                 )}
 
                 <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 max-w-md leading-relaxed">
-                  {heroProduct.description || 'Explore our newest catalog product available on EasyKart.'}
+                  {heroProduct.description || 'Explore our newest catalog product available on Kartrix.'}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -128,7 +128,7 @@ export const HomePage = () => {
                   <div className="w-16 h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center mx-auto">
                     <ShoppingBag className="w-8 h-8" />
                   </div>
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">EasyKart Catalog</h3>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Kartrix Catalog</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Discover premium items across categories</p>
                 </div>
               )}

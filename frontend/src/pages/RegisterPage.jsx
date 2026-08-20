@@ -60,10 +60,10 @@ export const RegisterPage = () => {
             <ShoppingBag className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Create EasyKart Account
+            Create Kartrix Account
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Join EasyKart to enjoy personalized shopping and fast checkout
+            Join Kartrix to enjoy personalized shopping and fast checkout
           </p>
         </div>
 

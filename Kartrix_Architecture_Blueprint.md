@@ -1,4 +1,4 @@
-# EasyKart 2.0 — Architecture & Database Blueprint
+# Kartrix 2.0 — Architecture & Database Blueprint
 
 **Status:** Architecture checkpoint / source of truth  
 **Purpose:** Preserve the EasyKart 2.0 architecture so development can continue even if the chat is lost.

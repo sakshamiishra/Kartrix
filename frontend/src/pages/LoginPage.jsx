@@ -45,7 +45,7 @@ export const LoginPage = () => {
             <ShoppingBag className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-            Welcome Back to EasyKart
+            Welcome Back to Kartrix
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Sign in with your email and password to manage your account

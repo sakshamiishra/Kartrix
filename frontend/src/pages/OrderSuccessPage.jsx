@@ -70,8 +70,8 @@ export function OrderSuccessPage() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {order.payment_status === 'PAID'
-              ? 'Thank you for shopping with EasyKart. Your payment has been verified and your order is confirmed.'
-              : 'Thank you for shopping with EasyKart. Your Cash on Delivery order has been placed successfully.'}
+              ? 'Thank you for shopping with Kartrix. Your payment has been verified and your order is confirmed.'
+              : 'Thank you for shopping with Kartrix. Your Cash on Delivery order has been placed successfully.'}
           </p>
         </div>
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 font-mono text-xs font-bold rounded-full border border-green-200 dark:border-green-800/50">

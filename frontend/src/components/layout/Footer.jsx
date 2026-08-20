@@ -15,11 +15,11 @@ export const Footer = () => {
                 <ShoppingBag className="w-4 h-4" />
               </div>
               <span className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
-                Easy<span className="text-orange-600">Kart</span>
+                Kartrix
               </span>
             </Link>
             <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              EasyKart 2.0 is a premium e-commerce shopping experience built with React, Vite, Tailwind CSS, and Django REST Framework.
+              Kartrix 2.0 is a premium e-commerce shopping experience built with React, Vite, Tailwind CSS, and Django REST Framework.
             </p>
           </div>
 
@@ -97,7 +97,7 @@ export const Footer = () => {
         </div>
 
         <div className="border-t border-gray-100 dark:border-[#2A2D32] mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500 dark:text-gray-400">
-          <p>© {new Date().getFullYear()} EasyKart 2.0. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Kartrix 2.0. All rights reserved.</p>
           <p>Built with React + Vite + Tailwind CSS + Django REST Framework</p>
         </div>
       </div>

@@ -4,7 +4,7 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('easykart_theme');
+    const savedTheme = localStorage.getItem('kartrix_theme') || localStorage.getItem('easykart_theme');
     if (savedTheme === 'light' || savedTheme === 'dark') {
       return savedTheme;
     }
@@ -18,7 +18,7 @@ export const ThemeProvider = ({ children }) => {
     } else {
       root.classList.remove('dark');
     }
-    localStorage.setItem('easykart_theme', theme);
+    localStorage.setItem('kartrix_theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {

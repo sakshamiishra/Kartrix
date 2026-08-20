@@ -52,7 +52,7 @@ export const Navbar = () => {
               <ShoppingBag className="w-5 h-5" />
             </div>
             <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Easy<span className="text-orange-600">Kart</span>
+              Kartrix
             </span>
           </Link>
 

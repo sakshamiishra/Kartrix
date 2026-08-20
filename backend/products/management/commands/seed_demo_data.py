@@ -19,7 +19,7 @@ class Command(BaseCommand):
     help = 'Idempotently seed realistic development/demo product catalog data (prices in INR)'
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.MIGRATE_HEADING('Starting EasyKart Demo Catalog Seeding (INR Prices)...'))
+        self.stdout.write(self.style.MIGRATE_HEADING('Starting Kartrix Demo Catalog Seeding (INR Prices)...'))
 
         # Ensure media directory exists
         media_products_dir = os.path.join(settings.MEDIA_ROOT, 'products')
