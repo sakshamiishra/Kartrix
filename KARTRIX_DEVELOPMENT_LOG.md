@@ -915,31 +915,123 @@ Executed a controlled customer-facing branding rename from EasyKart to Kartrix a
 
 ---
 
-### Phase 10 — Admin Panel Implementation & Verification (2026-08-20)
+### Phase 10 — Admin Panel Implementation & System Verification (2026-08-20)
 
-#### 1. Scope & Architecture Highlights
-- **Single-Merchant Scope**: Implemented Kartrix 2.0 single-merchant Admin Panel. Multi-vendor seller onboarding, vendor dashboards, and commissions are explicitly excluded.
-- **Simple 3-Tier RBAC**: Simple role model enforced: `Customer` (`is_staff=False`), `Staff` (`is_staff=True`), `Superuser` (`is_superuser=True`).
-- **Dual-Layer Access Security**:
-  - **Frontend UX**: Unauthenticated users $\rightarrow$ `/login`. Authenticated customers $\rightarrow$ friendly `AdminAccessDeniedPage` ("Access Restricted", "Return to Storefront" CTA). Staff & Superusers $\rightarrow$ React Admin Panel.
-  - **Backend Security**: DRF `IsStaffUser` and `IsSuperUser` permission classes protect all `/api/admin/*` endpoints. Direct customer calls return HTTP 403 Forbidden.
-- **Server-Authoritative Order State Machine**: `PLACED` $\rightarrow$ `CONFIRMED` $\rightarrow$ `PROCESSING` $\rightarrow$ `SHIPPED` $\rightarrow$ `OUT_FOR_DELIVERY` $\rightarrow$ `DELIVERED`. Invalid jumps return HTTP 400 Bad Request. Order cancellation from `PLACED`/`CONFIRMED` restores stock atomically via `InventoryTransaction` logging.
-- **Refund Audit Recording**: `Payment.status = REFUNDED` records internal DB audit logs only. Admin UI explicitly displays manual audit disclaimers.
-- **11 React Admin Pages**: Built and integrated `AdminDashboardPage`, `AdminProductListPage`, `AdminProductFormPage`, `AdminCategoryListPage`, `AdminBrandListPage`, `AdminInventoryPage`, `AdminOrderListPage`, `AdminOrderDetailPage`, `AdminReviewListPage`, `AdminCouponPage`, and `AdminUserListPage`.
-- **0 Database Migrations**: Reused existing 34 PostgreSQL database tables without requiring schema migrations.
+**Phase:**
+Phase 10 — Admin Panel
 
-#### 2. Summary of Created & Modified Files
+**Status:**
+COMPLETE
+
+#### 1. Architecture & Access Control Security
+- **Single-Merchant Scope:** Implemented Kartrix 2.0 single-merchant Admin Panel. Multi-vendor seller onboarding, vendor dashboards, marketplace payouts, and vendor commissions are explicitly out of scope.
+- **Role-Based Access Control (RBAC):** Enforced 3-tier role security:
+  - `Customer` (`is_staff=False`) — Blocked from Admin Panel and Admin APIs.
+  - `Staff` (`is_staff=True`) — Administrative access to store operations. Cannot escalate privileges or modify superusers.
+  - `Superuser` (`is_superuser=True`) — Full administrative authority including staff privilege management.
+- **Dual-Layer Access Protection:**
+  - **Frontend UX:** Unauthenticated users accessing `/admin/*` $\rightarrow$ redirected to `/login`. Authenticated non-staff users $\rightarrow$ friendly `AdminAccessDeniedPage` ("Access Restricted", "Return to Storefront" CTA). Staff & Superusers $\rightarrow$ full React Admin Panel.
+  - **Backend Security:** DRF `IsStaffUser` and `IsSuperUser` permission classes protect all `/api/admin/*` endpoints. Direct customer calls return HTTP 403 Forbidden.
+- **Storefront Navigation Integration:** Storefront `Navbar` displays an "Admin Panel" option in the account dropdown strictly for authenticated users where `user.is_staff === true`.
+
+#### 2. Product Management
+- **Product Listing:** Displays catalog items with dynamic `variant_count` and `total_stock` aggregated across all variants.
+- **Product Form (Creation & Editing):** Supports product name, slug (auto-generated from name if left blank), description, category selection, category-filtered brand selection, optional "No Brand" (`brand = null`), and active/inactive status.
+- **Product Images:** Image upload endpoint (`POST /api/admin/products/:id/images/`) and primary image management.
+- **Product Deactivation/Deletion:** Soft deactivation and product removal actions (`DELETE /api/admin/products/:id/`).
+
+#### 3. Brand and Category Management
+- **Brand CRUD:** `AdminBrandViewSet` supporting brand creation, editing, listing, and deletion.
+- **Category CRUD:** `AdminCategoryViewSet` supporting category creation, editing, listing, and deletion.
+- **Auto-Generated Slugs:** Leaving the slug field empty during Brand or Category creation automatically generates a clean URL slug from the name.
+- **Brand ↔ Category Many-to-Many Relationship:** Brands can be associated with multiple categories. Brands with zero category restrictions remain available across all categories.
+- **Category-Aware Brand Filtering:** Product creation/editing form automatically filters available brands based on the selected category while keeping "No Brand" available for all categories. Changing category automatically clears invalid brand selections.
+
+#### 4. Product Variants & Stock Entry
+- **Variant Creation:** Endpoint `POST /api/admin/products/:id/variants/` supports creating product variants with SKU, price, discount price, attribute values, and initial stock quantity (e.g., 25 units).
+- **Variant Editing:** `PATCH /api/admin/products/:id/variants/:variant_id/` for variant updates.
+- **Variant-Specific Inventory:** Automatically initializes or updates `Inventory` records for each variant.
+- **Live Aggregations:** Dynamic `X variants · Y units` calculation and immediate UI refetching without full page reloads.
+
+#### 5. Scalable Inventory Management & Audit Logging
+- **Server-Side Pagination:** Enforced `StandardResultsSetPagination` (`page_size = 25`) on inventory listing and audit transaction logs.
+- **Lowest-Stock Ordering:** Preserves `quantity` ascending ordering by default (lowest stock first) to highlight stockout risks.
+- **Server-Side Search:** Case-insensitive search (`icontains`) matching Product Name (`product_variant__product__name`), Variant Attribute Values (`product_variant__attribute_values__value`), and SKU (`product_variant__sku`). Resets pagination to page 1 on query change.
+- **Stock Filters:** Server-side filter buttons (`All Stock`, `Out of Stock`: `quantity <= 0`, `Low Stock`: `0 < quantity <= reorder_level`, `In Stock`: `quantity > reorder_level`).
+- **Manual Stock Adjustments:** Adjustment modal for `INCOMING` stock additions or `ADJUSTMENT` corrections with audit notes.
+- **Audit Transaction Log:** Server-side paginated transaction log (`25/page`, newest first `-created_at`) recording all `SALE`, `RESTOCK`, `INCOMING`, and `ADJUSTMENT` transactions.
+- **Table UX:** Sticky table header (`sticky top-0 z-10`), product name, variant attributes, SKU, quantity available, reserved, reorder level, and stock status badges.
+
+#### 6. Coupons Management
+- **Coupon CRUD:** `AdminCouponViewSet` supporting creation, editing, listing, and deletion of discount coupons.
+- **Coupon Parameters:** Supports coupon code, discount type (`PERCENTAGE` or `FLAT`), discount value in INR, minimum order spend, maximum discount cap, validity date range, usage limit count, and active toggle.
+
+#### 7. Orders & State Machine Governance
+- **Order Management:** `AdminOrderViewSet` for viewing order listings, customer details, shipping addresses, items, and status progression.
+- **Server-Authoritative State Machine:** Strict order status transition hierarchy enforced: `PLACED` $\rightarrow$ `CONFIRMED` $\rightarrow$ `PROCESSING` $\rightarrow$ `SHIPPED` $\rightarrow$ `OUT_FOR_DELIVERY` $\rightarrow$ `DELIVERED`. Invalid jumps return HTTP 400 Bad Request.
+- **Order Cancellation & Stock Restoration:** Cancelling orders in `PLACED` or `CONFIRMED` status automatically restores variant stock (`RESTOCK` transaction) and logs `OrderStatusHistory` under atomic database transactions.
+- **Refund Audit Recording:** Endpoint `POST /api/admin/payments/:id/record_refund/` sets `Payment.status = REFUNDED` for internal database audit recording only. Admin UI explicitly displays manual gateway refund disclaimers.
+
+#### 8. Reviews Moderation
+- **Review Management:** `AdminReviewViewSet` for listing, inspecting, approving, hiding, and deleting customer product reviews.
+
+#### 9. User Administration & Staff Management
+- **User Management:** `AdminUserViewSet` for listing users, viewing customer details, and toggling staff status (`is_staff`).
+- **Privilege Escalation Protection:** Staff users cannot grant staff access, revoke staff access, or modify superusers. Superusers retain full authority.
+
+#### 10. Safe Brand/Category Deletion UX & Product Navigation
+- **Server-Side Safe Deletion Protection:** Overrode `destroy()` in `AdminBrandViewSet` and `AdminCategoryViewSet` to block deletion with HTTP 400 Bad Request if any products are linked to the brand or category. Returns exact product count message.
+- **Deletion-Blocked Modal Dialog:** Catching HTTP 400 on deletion opens a clean modal ("Cannot Delete Brand" / "Cannot Delete Category") showing the exact error message and product count.
+- **"View Products" SPA Navigation:** Clicking `[ View Products ]` navigates internally via React Router to `/admin/products?brand=<brand_id>` or `/admin/products?category=<category_id>`.
+- **Products Page Active Filter Banner:** `AdminProductListPage` reads `brand` / `category` URL query parameters, automatically filters catalog products server-side, and displays an active filter banner (`Showing products filtered for Brand: Apple`) with a `Clear Filter` button.
+- **Modal Backdrop Positioning Fix:** Moved the modal outside the `space-y-8` layout wrapper using React Fragment (`<> ... </>`) to prevent Tailwind's direct-child sibling selector from injecting `margin-top: 2rem` (32px) onto `position: fixed` overlay, eliminating top white strip.
+
+#### 11. Important Bug Fixes Resolved in Phase 10
+1. **Product Creation Payload Mismatch:** Fixed `ProductCreateUpdateSerializer` to handle `category` vs `category_id` payload fields.
+2. **Auto-Generated Slug Bug:** Fixed slug generation for Brands and Categories when slug field is left empty.
+3. **Product Variant Serializer Bug:** Fixed `ProductVariantSerializer` to handle `product` supplied through URL kwargs without requiring duplicate product payload.
+4. **Variant Stock Refetching:** Fixed inventory state updates so variant count and total stock refresh immediately after creation/editing without browser reloads.
+5. **Inventory Search Q Filter:** Fixed `AdminInventoryViewSet` search lookup from non-existent `product_variant__name` to `product_variant__attribute_values__value__icontains`.
+6. **Modal Backdrop White Strip:** Fixed Tailwind `space-y-8` margin injection on fixed modal overlay using React Fragment structural placement.
+
+#### 12. Summary of Created & Modified Files
 - `backend/accounts/permissions.py` — Created `IsSuperUser` permission class.
-- `backend/easykart/admin_views.py` — Created DRF Staff Admin ViewSets for Dashboard, Catalog, Inventory, Orders, Payments, Reviews, Coupons, Users.
+- `backend/easykart/admin_views.py` — Created DRF Staff Admin ViewSets for Dashboard, Catalog, Inventory, Orders, Payments, Reviews, Coupons, Users with pagination, search, filters, and safe deletion checks.
 - `backend/easykart/urls.py` — Registered `/api/admin/` router and dashboard endpoints.
-- `backend/easykart/tests_admin.py` — Created 11 automated unit tests for permissions, order state machine, stock adjustments, and staff management.
+- `backend/easykart/tests_admin.py` — Created 35 automated unit tests for permissions, order state machine, stock adjustments, pagination, search, filters, safe brand/category deletion, and optional brand.
 - `backend/orders/serializers.py` — Added `CouponSerializer`.
+- `backend/products/serializers.py` — Updated `ProductCreateUpdateSerializer` for optional "No Brand" (`brand = None`) and category validation.
 - `frontend/src/api/adminApi.js` — Created Axios service module for Admin API endpoints.
-- `frontend/src/components/admin/AdminAccessDeniedPage.jsx` — Created friendly Access Denied UI.
+- `frontend/src/components/admin/AdminAccessDeniedPage.jsx` — Created Access Denied UI.
 - `frontend/src/components/admin/AdminProtectedRoute.jsx` — Created client-side route guard with non-staff fallback.
 - `frontend/src/components/admin/AdminLayout.jsx` — Created Admin layout with sidebar navigation, header, theme toggle, and user badge.
-- `frontend/src/pages/admin/` — Created 11 Admin Pages.
+- `frontend/src/components/layout/Navbar.jsx` — Added "Admin Panel" menu link for staff users.
+- `frontend/src/pages/admin/AdminDashboardPage.jsx` — Built Admin Dashboard page.
+- `frontend/src/pages/admin/AdminProductListPage.jsx` — Built Products Catalog page with search, active filters, and URL query parameter filtering banner.
+- `frontend/src/pages/admin/AdminProductFormPage.jsx` — Built Product & Variant creation/editing page with optional "No Brand" choice.
+- `frontend/src/pages/admin/AdminCategoryListPage.jsx` — Built Categories page with safe deletion modal.
+- `frontend/src/pages/admin/AdminBrandListPage.jsx` — Built Brands page with M2M category associations and safe deletion modal.
+- `frontend/src/pages/admin/AdminInventoryPage.jsx` — Built Inventory page with server-side pagination, search, stock filters, adjustment modal, and audit log pagination.
+- `frontend/src/pages/admin/AdminOrderListPage.jsx` — Built Order list page with status filters.
+- `frontend/src/pages/admin/AdminOrderDetailPage.jsx` — Built Order detail page with state machine transition buttons and refund audit log.
+- `frontend/src/pages/admin/AdminReviewListPage.jsx` — Built Reviews moderation page.
+- `frontend/src/pages/admin/AdminCouponPage.jsx` — Built Coupon management page.
+- `frontend/src/pages/admin/AdminUserListPage.jsx` — Built User management & staff toggle page.
 - `frontend/src/App.jsx` — Mounted `/admin/*` routes.
+
+#### 13. Automated Verification Results
+- **Django System Check:** `.\env\Scripts\python backend/manage.py check` $\rightarrow$ `System check identified no issues (0 silenced).`
+- **Django Migrations Check:** `.\env\Scripts\python backend/manage.py makemigrations --check --dry-run` $\rightarrow$ `No changes detected.` (0 schema changes, 0 migrations).
+- **Backend Unit Test Suite:** `.\env\Scripts\python backend/manage.py test easykart.tests_admin --noinput` $\rightarrow$ `Ran 35 tests in 255.510s ... OK` (35/35 passed, 100% success rate).
+- **Frontend Production Build:** `npm run build` (in `frontend/`) $\rightarrow$ `✓ built in 19.38s` (1981 modules transformed, 0 errors).
+- **Manual Verification:** Verified dashboard stats, product catalog, variant creator, inventory pagination/search, stock filters, order status state machine, safe brand/category deletion modal, SPA URL filter navigation, and storefront navbar admin link.
+
+#### 14. Phase Boundaries & Future Scope
+- **Recommendation Engine:** Basic & Advanced Recommendation Engine (DeepFM) remains strictly deferred to Phase 11 / future phases.
+- **Seller / Vendor / Marketplace:** Multi-seller vendor dashboards, commissions, and payouts remain strictly out of scope.
+
+#### 15. Final Phase Status
+- **Phase 10 Status:** `COMPLETE`
 
 
 
