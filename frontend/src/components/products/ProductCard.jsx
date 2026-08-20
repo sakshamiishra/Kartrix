@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { Heart } from 'lucide-react';
+import { Heart, Star } from 'lucide-react';
 import { useWishlist } from '../../context/WishlistContext';
 
 export const ProductCard = ({ product }) => {
@@ -31,6 +31,8 @@ export const ProductCard = ({ product }) => {
 
   const categoryName = typeof product.category === 'object' ? product.category?.name : null;
   const brandName = typeof product.brand === 'object' ? product.brand?.name : null;
+  const avgRating = product.average_rating || 0;
+  const reviewCount = product.review_count || 0;
 
   return (
     <Link
@@ -46,6 +48,15 @@ export const ProductCard = ({ product }) => {
             e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=600';
           }}
         />
+
+        {/* Rating Badge on Image */}
+        {avgRating > 0 && (
+          <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-amber-400 text-[11px] font-bold flex items-center gap-1">
+            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            <span>{avgRating.toFixed(1)}</span>
+            {reviewCount > 0 && <span className="text-gray-300 font-normal">({reviewCount})</span>}
+          </div>
+        )}
 
         {/* Live Wishlist Toggle Button */}
         <button

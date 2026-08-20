@@ -32,6 +32,9 @@ urlpatterns = [
     # Payments API
     path('api/payments/', include('payments.urls')),
 
+    # Reviews API
+    path('api/reviews/', include('reviews.urls')),
+
 
     # OpenAPI 3 Schema & Swagger UI
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
-import { Heart, ShoppingBag, ChevronRight, ShieldCheck, Truck, Headphones, ArrowLeft, Plus, Minus } from 'lucide-react';
+import { Heart, ShoppingBag, ChevronRight, ShieldCheck, Truck, Headphones, ArrowLeft, Plus, Minus, MessageSquarePlus } from 'lucide-react';
 import { productApi } from '../api/productApi';
+import { reviewApi } from '../api/reviewApi';
 import { ProductGallery } from '../components/products/ProductGallery';
 import { VariantSelector } from '../components/products/VariantSelector';
 import { ProductDetailSkeleton } from '../components/common/LoadingSkeleton';
+import { StarRating } from '../components/products/StarRating';
+import { ReviewSummary } from '../components/products/ReviewSummary';
+import { ReviewList } from '../components/products/ReviewList';
+import { ReviewFormModal } from '../components/products/ReviewFormModal';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export const ProductDetailPage = () => {
   const { slug } = useParams();
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const { user, isAuthenticated } = useAuth();
+  const { addToast } = useToast();
 
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -19,22 +28,74 @@ export const ProductDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await productApi.getProductDetail(slug);
-        setProduct(data);
-      } catch (err) {
-        console.error('Error loading product detail:', err);
-        setError('Product not found or failed to load.');
-      } finally {
-        setLoading(false);
+  // Review states
+  const [reviews, setReviews] = useState([]);
+  const [reviewSummary, setReviewSummary] = useState(null);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [canReview, setCanReview] = useState(false);
+  const [userExistingReview, setUserExistingReview] = useState(null);
+
+  const fetchProductAndReviews = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await productApi.getProductDetail(slug);
+      setProduct(data);
+
+      if (data && data.id) {
+        await loadReviews(data.id);
       }
-    };
-    fetchProduct();
-  }, [slug]);
+    } catch (err) {
+      console.error('Error loading product detail:', err);
+      setError('Product not found or failed to load.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadReviews = async (productId) => {
+    setReviewsLoading(true);
+    try {
+      const [reviewsData, summaryData] = await Promise.all([
+        reviewApi.getReviews(productId),
+        reviewApi.getReviewSummary(productId),
+      ]);
+
+      const reviewList = reviewsData.results || reviewsData || [];
+      setReviews(reviewList);
+      setReviewSummary(summaryData);
+
+      // Check if current user has an existing review
+      if (isAuthenticated && user) {
+        const found = reviewList.find((r) => r.user === user.id || r.user_email === user.email);
+        setUserExistingReview(found || null);
+
+        // Check reviewable items if no review exists yet
+        if (!found) {
+          try {
+            const reviewable = await reviewApi.getReviewableItems();
+            const isEligible = reviewable.some((item) => item.product_id === productId);
+            setCanReview(isEligible);
+          } catch (rErr) {
+            setCanReview(false);
+          }
+        } else {
+          setCanReview(false);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProductAndReviews();
+  }, [slug, isAuthenticated]);
 
   if (loading) return <ProductDetailSkeleton />;
 
@@ -67,8 +128,62 @@ export const ProductDetailPage = () => {
     toggleWishlist(product);
   };
 
+  const handleOpenReviewModal = (reviewToEdit = null) => {
+    if (!isAuthenticated) {
+      addToast('Please sign in to write a review.', 'info');
+      return;
+    }
+    setEditingReview(reviewToEdit);
+    setReviewModalOpen(true);
+  };
+
+  const handleSubmitReview = async (formData) => {
+    setSubmittingReview(true);
+    try {
+      const payload = new FormData();
+      payload.append('rating', formData.rating);
+      payload.append('title', formData.title || '');
+      payload.append('comment', formData.comment || '');
+
+      if (editingReview) {
+        if (formData.images && formData.images.length > 0) {
+          formData.images.forEach((img) => payload.append('uploaded_images', img));
+        }
+        await reviewApi.updateReview(editingReview.id, payload);
+        addToast('Your review has been updated successfully!', 'success');
+      } else {
+        payload.append('product', product.id);
+        if (formData.images && formData.images.length > 0) {
+          formData.images.forEach((img) => payload.append('uploaded_images', img));
+        }
+        await reviewApi.createReview(payload);
+        addToast('Thank you! Your review has been published.', 'success');
+      }
+
+      setReviewModalOpen(false);
+      setEditingReview(null);
+      await loadReviews(product.id);
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || 'Failed to submit review.';
+      addToast(msg, 'error');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to delete this review?')) return;
+    try {
+      await reviewApi.deleteReview(reviewId);
+      addToast('Review deleted successfully.', 'success');
+      await loadReviews(product.id);
+    } catch (err) {
+      addToast('Failed to delete review.', 'error');
+    }
+  };
+
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-12 pb-16">
       
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
@@ -96,9 +211,19 @@ export const ProductDetailPage = () => {
             <h1 className="text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-snug">
               {product.name}
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Category: <span className="font-semibold text-gray-700 dark:text-gray-300">{categoryName}</span>
-            </p>
+
+            {/* Rating Star Badge Header */}
+            <div className="flex items-center gap-2 pt-1">
+              <StarRating
+                rating={product.average_rating || 0}
+                showCount={true}
+                count={product.review_count || 0}
+              />
+              <span className="text-xs text-gray-400">•</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Category: <span className="font-semibold text-gray-700 dark:text-gray-300">{categoryName}</span>
+              </p>
+            </div>
           </div>
 
           {/* Pricing */}
@@ -198,6 +323,61 @@ export const ProductDetailPage = () => {
 
       </div>
 
+      {/* Customer Reviews & Rating Section */}
+      <div className="space-y-8 pt-6 border-t border-gray-200 dark:border-[#2A2D32]">
+        
+        {/* Section Header & Write Review Action */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white">Customer Reviews</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Verified buyer ratings and experiences</p>
+          </div>
+
+          {userExistingReview ? (
+            <button
+              onClick={() => handleOpenReviewModal(userExistingReview)}
+              className="px-5 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-xl transition-all flex items-center gap-2 border border-gray-200 dark:border-gray-700"
+            >
+              <MessageSquarePlus className="w-4 h-4 text-orange-600" />
+              <span>Edit Your Review</span>
+            </button>
+          ) : canReview ? (
+            <button
+              onClick={() => handleOpenReviewModal(null)}
+              className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-orange-600/20 flex items-center gap-2"
+            >
+              <MessageSquarePlus className="w-4 h-4" />
+              <span>Write a Review</span>
+            </button>
+          ) : null}
+        </div>
+
+        {/* Rating Distribution Breakdown Summary */}
+        <ReviewSummary summary={reviewSummary} />
+
+        {/* Reviews List */}
+        <ReviewList
+          reviews={reviews}
+          currentUser={user}
+          onEditReview={(rev) => handleOpenReviewModal(rev)}
+          onDeleteReview={(id) => handleDeleteReview(id)}
+          loading={reviewsLoading}
+        />
+
+      </div>
+
+      {/* Review Write/Edit Form Modal */}
+      <ReviewFormModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        onSubmit={handleSubmitReview}
+        initialData={editingReview}
+        productName={product.name}
+        loading={submittingReview}
+      />
+
     </div>
   );
 };
+
+export default ProductDetailPage;

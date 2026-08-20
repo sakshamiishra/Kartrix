@@ -131,6 +131,8 @@ class ProductListSerializer(serializers.ModelSerializer):
     brand = BrandSerializer(read_only=True)
     primary_image = serializers.SerializerMethodField()
     starting_price = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -143,6 +145,8 @@ class ProductListSerializer(serializers.ModelSerializer):
             'sku',
             'primary_image',
             'starting_price',
+            'average_rating',
+            'review_count',
             'is_active',
             'created_at',
         )
@@ -166,12 +170,28 @@ class ProductListSerializer(serializers.ModelSerializer):
             return str(price)
         return None
 
+    def get_average_rating(self, obj):
+        if hasattr(obj, 'average_rating') and obj.average_rating is not None:
+            return round(float(obj.average_rating), 1)
+        from reviews.models import Review
+        from django.db.models import Avg
+        val = Review.objects.filter(product=obj, is_approved=True).aggregate(avg=Avg('rating'))['avg']
+        return round(float(val), 1) if val else 0.0
+
+    def get_review_count(self, obj):
+        if hasattr(obj, 'review_count') and obj.review_count is not None:
+            return obj.review_count
+        from reviews.models import Review
+        return Review.objects.filter(product=obj, is_approved=True).count()
+
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -185,10 +205,27 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'sku',
             'images',
             'variants',
+            'average_rating',
+            'review_count',
             'is_active',
             'created_at',
             'updated_at',
         )
+
+    def get_average_rating(self, obj):
+        if hasattr(obj, 'average_rating') and obj.average_rating is not None:
+            return round(float(obj.average_rating), 1)
+        from reviews.models import Review
+        from django.db.models import Avg
+        val = Review.objects.filter(product=obj, is_approved=True).aggregate(avg=Avg('rating'))['avg']
+        return round(float(val), 1) if val else 0.0
+
+    def get_review_count(self, obj):
+        if hasattr(obj, 'review_count') and obj.review_count is not None:
+            return obj.review_count
+        from reviews.models import Review
+        return Review.objects.filter(product=obj, is_approved=True).count()
+
 
 
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):

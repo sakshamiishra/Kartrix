@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
-import { Package, MapPin, Clock, ArrowLeft, ShieldCheck, CheckCircle2, CreditCard, Loader2 } from 'lucide-react';
+import { Package, MapPin, Clock, ArrowLeft, ShieldCheck, CheckCircle2, CreditCard, Loader2, MessageSquarePlus } from 'lucide-react';
 import { orderApi } from '../api/orderApi';
 import { paymentApi } from '../api/paymentApi';
+import { reviewApi } from '../api/reviewApi';
+import { ReviewFormModal } from '../components/products/ReviewFormModal';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -32,6 +34,10 @@ export function OrderDetailPage() {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
+  // Review modal state for order items
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedReviewItem, setSelectedReviewItem] = useState(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const fetchOrderDetail = async () => {
     try {
@@ -116,6 +122,36 @@ export function OrderDetailPage() {
     }
   };
 
+  const handleOpenReviewModalForItem = (item) => {
+    setSelectedReviewItem(item);
+    setReviewModalOpen(true);
+  };
+
+  const handleSubmitReviewForItem = async (formData) => {
+    if (!selectedReviewItem || !selectedReviewItem.product) return;
+    setSubmittingReview(true);
+    try {
+      const payload = new FormData();
+      payload.append('product', selectedReviewItem.product);
+      payload.append('rating', formData.rating);
+      payload.append('title', formData.title || '');
+      payload.append('comment', formData.comment || '');
+      if (formData.images && formData.images.length > 0) {
+        formData.images.forEach((img) => payload.append('uploaded_images', img));
+      }
+
+      await reviewApi.createReview(payload);
+      addToast(`Thank you! Your review for ${selectedReviewItem.product_name} has been submitted.`, 'success');
+      setReviewModalOpen(false);
+      setSelectedReviewItem(null);
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || 'Failed to submit review.';
+      addToast(msg, 'error');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 py-8">
@@ -156,9 +192,9 @@ export function OrderDetailPage() {
   const isPendingPayment = order.payment_status === 'PENDING';
   const isRazorpayMethod = (order.payment?.payment_method || 'RAZORPAY') === 'RAZORPAY';
   const isCancellable = order.status === 'PLACED' || order.status === 'CONFIRMED';
+  const isDeliveredAndPaid = order.status === 'DELIVERED' && isPaid;
 
   const handleCancelOrder = async () => {
-
     setCancelling(true);
     try {
       await orderApi.cancelOrder(order.order_number);
@@ -302,7 +338,6 @@ export function OrderDetailPage() {
         </div>
       </div>
 
-
       {/* Items List */}
       <div className="bg-white dark:bg-[#17191B] rounded-3xl border border-gray-100 dark:border-[#2A2D32] p-6 space-y-4 shadow-sm">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -316,15 +351,28 @@ export function OrderDetailPage() {
             const itemSubtotalFormatted = parseFloat(item.subtotal || 0).toLocaleString('en-IN');
 
             return (
-              <div key={item.id} className="py-4 flex items-center justify-between gap-4">
+              <div key={item.id} className="py-4 flex flex-wrap items-center justify-between gap-4">
                 <div className="space-y-1">
                   <p className="font-semibold text-sm text-gray-900 dark:text-white">{item.product_name}</p>
                   <p className="text-xs text-gray-500">
                     Quantity: {item.quantity} × ₹{unitPriceFormatted}
                   </p>
                 </div>
-                <div className="text-right">
-                  <span className="font-bold text-sm text-gray-900 dark:text-white">₹{itemSubtotalFormatted}</span>
+                
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <span className="font-bold text-sm text-gray-900 dark:text-white">₹{itemSubtotalFormatted}</span>
+                  </div>
+
+                  {isDeliveredAndPaid && item.product && (
+                    <button
+                      onClick={() => handleOpenReviewModalForItem(item)}
+                      className="px-3.5 py-1.5 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/50 border border-orange-200 dark:border-orange-800 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                    >
+                      <MessageSquarePlus className="w-3.5 h-3.5" />
+                      <span>Review Product</span>
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -390,9 +438,17 @@ export function OrderDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Review Modal for Order Items */}
+      <ReviewFormModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        onSubmit={handleSubmitReviewForItem}
+        productName={selectedReviewItem?.product_name || ''}
+        loading={submittingReview}
+      />
     </div>
   );
 }
-
 
 export default OrderDetailPage;

@@ -92,6 +92,9 @@ class BrandViewSet(viewsets.ModelViewSet):
         return obj
 
 
+from django.db.models import Q, Avg, Count, FloatField
+from django.db.models.functions import Coalesce
+
 class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     pagination_class = CatalogPagination
@@ -105,7 +108,16 @@ class ProductViewSet(viewsets.ModelViewSet):
             qs = Product.objects.all()
         else:
             qs = Product.objects.filter(is_active=True)
-        return qs.select_related('category', 'brand').prefetch_related('images', 'variants').order_by('-created_at').distinct()
+        return (
+            qs.annotate(
+                average_rating=Coalesce(Avg('reviews__rating', filter=Q(reviews__is_approved=True)), 0.0, output_field=FloatField()),
+                review_count=Count('reviews', filter=Q(reviews__is_approved=True))
+            )
+            .select_related('category', 'brand')
+            .prefetch_related('images', 'variants')
+            .order_by('-created_at')
+            .distinct()
+        )
 
     def get_serializer_class(self):
         if self.action == 'list':
