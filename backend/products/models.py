@@ -23,6 +23,7 @@ class Brand(models.Model):
     slug = models.SlugField(unique=True, db_index=True)
     description = models.TextField(blank=True)
     logo = models.ImageField(upload_to='brands/', blank=True, null=True)
+    categories = models.ManyToManyField(Category, related_name='brands', blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

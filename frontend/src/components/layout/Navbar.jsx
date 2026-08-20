@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router';
-import { ShoppingBag, Heart, Search, User, Sun, Moon, Menu, X, LogOut, Package, MapPin } from 'lucide-react';
+import { ShoppingBag, Heart, Search, User, Sun, Moon, Menu, X, LogOut, Package, MapPin, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -146,6 +146,17 @@ export const Navbar = () => {
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                     </div>
 
+                    {user?.is_staff && (
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 border-b border-gray-100 dark:border-[#2A2D32]"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Admin Panel</span>
+                      </Link>
+                    )}
+
                     <Link
                       to="/profile"
                       onClick={() => setUserDropdownOpen(false)}
@@ -231,6 +242,17 @@ export const Navbar = () => {
           </form>
 
           <nav className="flex flex-col space-y-2">
+            {user?.is_staff && (
+              <Link
+                to="/admin/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 text-sm rounded-lg font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/60 flex items-center gap-2"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Admin Panel</span>
+              </Link>
+            )}
+
             {navLinks.map((link) => {
               const active = isLinkActive(link.path);
               return (

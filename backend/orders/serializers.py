@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem, OrderStatusHistory
+from .models import Order, OrderItem, OrderStatusHistory, Coupon
 from accounts.models import Address
 from accounts.serializers import AddressSerializer
 from payments.serializers import PaymentSerializer
@@ -75,4 +75,28 @@ class CheckoutSerializer(serializers.Serializer):
         except Address.DoesNotExist:
             raise serializers.ValidationError("Selected address does not exist or does not belong to your account.")
         return value
+
+
+
+class CouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = (
+            'id',
+            'code',
+            'description',
+            'discount_type',
+            'discount_value',
+            'minimum_order_amount',
+            'maximum_discount',
+            'usage_limit',
+            'used_count',
+            'valid_from',
+            'valid_until',
+            'is_active',
+            'created_at',
+            'updated_at',
+        )
+        read_only_fields = ('id', 'used_count', 'created_at', 'updated_at')
+
 
