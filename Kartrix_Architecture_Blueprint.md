@@ -210,9 +210,10 @@ backend/
 9. Reviews
        ↓
 10. Admin panel
-       ↓
+    - `/admin/*` = React Admin Panel
+    - `/api/admin/*` = Protected backend DRF Admin APIs
+    - **Access Flow**: Normal authenticated customer accounts attempting to access `/admin/*` receive a friendly `AdminAccessDenied` UI with a 'Return to Storefront' CTA. Backend `/api/admin/*` endpoints remain server-authoritative and return HTTP 403 Forbidden for authenticated non-staff users. Unauthenticated API requests return HTTP 401. Frontend route protection is for UX navigation; backend permissions enforce actual security.
 11. Basic recommendation engine
-       ↓
 12. Advanced features
 ```
 
@@ -272,12 +273,14 @@ User
 Customer
    → is_staff = False
 
-Admin
+Admin (Staff)
    → is_staff = True
 
-Super Admin
+Super Admin (Superuser)
    → is_superuser = True
 ```
+
+Superuser (`is_superuser=True`) exclusively holds authority to grant and revoke Staff (`is_staff=True`) access. Staff users cannot escalate privileges, promote users to Staff, or promote users to Superuser.
 
 Do not create separate `users` and `admins` tables.
 
@@ -1723,6 +1726,7 @@ Testing
 Celery
 Redis
 Cloud image storage
+Multi-vendor / Seller / Marketplace functionality (vendor registration, seller dashboards, vendor commissions, vendor payouts, seller storefronts)
 Advanced recommendation model
 Semantic search
 AI Shopping Assistant
@@ -2041,6 +2045,7 @@ Reviews + ReviewImages
 - Cloud image storage
 - Deployment infrastructure
 - Advanced notification delivery
+- Multi-vendor / Seller / Marketplace functionality (Kartrix 2.0 Phase 10 is strictly a single-merchant storefront admin)
 
 ---
 
