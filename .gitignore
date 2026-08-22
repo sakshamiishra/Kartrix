@@ -200,5 +200,8 @@ dist-ssr/
 .env.local
 .env.*.local
 
-
-# End of https://www.toptal.com/developers/gitignore/api/django,react
+# Recommendation & ML generated artifacts
+backend/recommendations/data/*.csv
+backend/recommendations/data/*.pkl
+backend/recommendations/data/*.pt
+backend/recommendations/data/*.json

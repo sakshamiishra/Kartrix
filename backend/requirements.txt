@@ -14,4 +14,10 @@ django-filter==25.1
 razorpay==1.4.1
 setuptools==75.8.0
 
+# DeepFM ML Dependencies (Step 2)
+torch>=2.2.0
+numpy>=1.26.0
+pandas>=2.2.0
+scikit-learn>=1.4.0
+
 

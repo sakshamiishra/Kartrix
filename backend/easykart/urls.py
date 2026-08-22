@@ -60,6 +60,9 @@ urlpatterns = [
     # Reviews API
     path('api/reviews/', include('reviews.urls')),
 
+    # Recommendations API
+    path('api/recommendations/', include('recommendations.urls')),
+
     # Admin API
     path('api/admin/dashboard/', AdminDashboardStatsView.as_view(), name='admin-dashboard'),
     path('api/admin/', include(admin_router.urls)),

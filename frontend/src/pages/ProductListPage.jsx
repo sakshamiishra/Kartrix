@@ -6,6 +6,7 @@ import { SidebarFilter } from '../components/common/SidebarFilter';
 import { ProductGrid } from '../components/products/ProductGrid';
 import { ProductGridSkeleton } from '../components/common/LoadingSkeleton';
 import { Pagination } from '../components/common/Pagination';
+import { RecommendedProductsSection } from '../components/products/RecommendedProductsSection';
 
 export const ProductListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,6 +26,16 @@ export const ProductListPage = () => {
   const maxPrice = searchParams.get('max_price') || '';
   const ordering = searchParams.get('ordering') || '-created_at';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
+  // Derive category_id if selectedCategory filter is active
+  const currentCategoryObj = categories.find(
+    (c) => c.slug === selectedCategory || String(c.id) === String(selectedCategory)
+  );
+  const currentCategoryId = currentCategoryObj
+    ? currentCategoryObj.id
+    : selectedCategory && !isNaN(selectedCategory)
+    ? parseInt(selectedCategory, 10)
+    : null;
 
   // Fetch Categories & Brands once
   useEffect(() => {
@@ -128,25 +139,8 @@ export const ProductListPage = () => {
         </div>
       </div>
 
-      {/* Recommended for You Placeholder Section Anchor */}
-      <div className="bg-gradient-to-r from-orange-500/5 via-amber-500/5 to-transparent dark:from-orange-500/10 dark:via-amber-500/5 dark:to-transparent border border-orange-100 dark:border-orange-950/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-lg shrink-0">
-            ✨
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white">
-              Recommended for You
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Personalized product recommendations structure prepared for future AI recommendation engine integration.
-            </p>
-          </div>
-        </div>
-        <span className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full border border-orange-200/60 dark:border-orange-900/40 shrink-0 self-start sm:self-auto">
-          AI Recommendations Anchor
-        </span>
-      </div>
+      {/* Live DeepFM & Popular Recommendations Section */}
+      <RecommendedProductsSection categoryId={currentCategoryId} limit={6} />
 
       {/* Main Content Layout */}
       <div className="flex gap-8">

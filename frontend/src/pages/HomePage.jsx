@@ -4,6 +4,7 @@ import { ShoppingBag, Truck, ShieldCheck, Headphones, ArrowRight, Sparkles, Laye
 import { productApi } from '../api/productApi';
 import { ProductCard } from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/common/LoadingSkeleton';
+import { RecommendedProductsSection } from '../components/products/RecommendedProductsSection';
 
 export const HomePage = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -221,6 +222,9 @@ export const HomePage = () => {
           </div>
         )}
       </section>
+
+      {/* Recommendations Section */}
+      <RecommendedProductsSection limit={6} />
 
     </div>
   );

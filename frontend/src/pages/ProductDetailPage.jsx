@@ -14,6 +14,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { RecommendedProductsSection } from '../components/products/RecommendedProductsSection';
 
 export const ProductDetailPage = () => {
   const { slug } = useParams();
@@ -365,6 +366,9 @@ export const ProductDetailPage = () => {
         />
 
       </div>
+
+      {/* Category-Aware Recommendations Section */}
+      <RecommendedProductsSection categoryId={product?.category?.id} limit={6} />
 
       {/* Review Write/Edit Form Modal */}
       <ReviewFormModal
